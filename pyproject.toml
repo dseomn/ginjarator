@@ -1,3 +1,18 @@
+[project]
+name = "ginjarator"
+version = "0"
+requires-python = ">=3.11"
+dependencies = [
+]
+
+[project.optional-dependencies]
+test = [
+  "absl-py",
+  "black",
+  "pytest",
+  "pytest-cov",
+]
+
 [tool.black]
 line-length = 80
 
