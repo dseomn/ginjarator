@@ -10,6 +10,7 @@ test = [
   "absl-py",
   "black",
   "isort",
+  "mypy",
   "pytest",
   "pytest-cov",
 ]
@@ -34,6 +35,20 @@ single_line_exclusions = [
 ]
 skip_gitignore = true
 src_paths = ["."]
+
+[tool.mypy]
+disallow_any_generics = true
+disallow_untyped_defs = true
+packages = ["ginjarator"]
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = [
+  "absl.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = """\

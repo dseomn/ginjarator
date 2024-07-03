@@ -23,17 +23,17 @@ from ginjarator import filesystem
 
 class FilesystemTest(parameterized.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._root = pathlib.Path(self.create_tempdir().full_path)
         self._fs = filesystem.Filesystem(self._root)
 
     @parameterized.parameters("src/foo", "something-else", "/absolute")
-    def test_write_text_invalid_path(self, path: str):
+    def test_write_text_invalid_path(self, path: str) -> None:
         with self.assertRaisesRegex(ValueError, "can be written to"):
             self._fs.write_text(pathlib.Path(path), "foo")
 
-    def test_write_text_noop(self):
+    def test_write_text_noop(self) -> None:
         contents = "the contents of the file"
         path = pathlib.Path("build/some-file")
         full_path = self._root / path
@@ -46,7 +46,7 @@ class FilesystemTest(parameterized.TestCase):
         self.assertEqual(contents, full_path.read_text())
         self.assertEqual(original_mtime, full_path.stat().st_mtime)
 
-    def test_write_text_writes_new_file(self):
+    def test_write_text_writes_new_file(self) -> None:
         contents = "the contents of the file"
         path = pathlib.Path("build/some-file")
         full_path = self._root / path
@@ -55,7 +55,7 @@ class FilesystemTest(parameterized.TestCase):
 
         self.assertEqual(contents, full_path.read_text())
 
-    def test_write_text_updates_file(self):
+    def test_write_text_updates_file(self) -> None:
         contents = "the contents of the file"
         path = pathlib.Path("build/some-file")
         full_path = self._root / path
