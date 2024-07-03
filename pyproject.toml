@@ -9,6 +9,7 @@ dependencies = [
 test = [
   "absl-py",
   "black",
+  "isort",
   "pytest",
   "pytest-cov",
 ]
@@ -21,6 +22,18 @@ omit = [
   "**/*_test.py",
   "**/conftest.py",
 ]
+
+[tool.isort]
+profile = "google"
+# TODO: https://github.com/PyCQA/isort/pull/2149 - Delete line_length and
+# single_line_exclusions.
+line_length = 9999
+single_line_exclusions = [
+  "collections.abc",
+  "typing",
+]
+skip_gitignore = true
+src_paths = ["."]
 
 [tool.pytest.ini_options]
 addopts = """\
