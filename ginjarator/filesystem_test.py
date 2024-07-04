@@ -21,6 +21,11 @@ from absl.testing import parameterized
 from ginjarator import filesystem
 
 
+def _sleep_for_mtime() -> None:
+    """Prevents writes before/after calling this from having the same mtime."""
+    time.sleep(0.01)
+
+
 class FilesystemTest(parameterized.TestCase):
 
     def setUp(self) -> None:
@@ -40,6 +45,7 @@ class FilesystemTest(parameterized.TestCase):
         full_path.parent.mkdir(parents=True)
         full_path.write_text(contents)
         original_mtime = full_path.stat().st_mtime
+        _sleep_for_mtime()
 
         self._fs.write_text(path, contents)
 
@@ -62,9 +68,7 @@ class FilesystemTest(parameterized.TestCase):
         full_path.parent.mkdir(parents=True)
         full_path.write_text("original contents of the file")
         original_mtime = full_path.stat().st_mtime
-        # Prevent the two different write_text() calls from appearing to happen
-        # at the same time.
-        time.sleep(0.01)
+        _sleep_for_mtime()
 
         self._fs.write_text(path, contents)
 
