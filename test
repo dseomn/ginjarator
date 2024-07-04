@@ -16,6 +16,7 @@
 
 set -euxo pipefail
 
+pylint ginjarator
 black --check --diff .
 isort --check --diff .
 mypy
