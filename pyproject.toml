@@ -57,3 +57,6 @@ addopts = """\
   --cov-branch \
   --cov-report=term-missing \
   """
+
+[tool.setuptools.packages.find]
+include = ["ginjarator", "ginjarator.*"]
