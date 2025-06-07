@@ -1,0 +1,73 @@
+# Copyright 2025 David Mandelberg
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Template rendering."""
+
+from collections.abc import Callable
+import dataclasses
+from typing import override
+
+import jinja2
+
+from ginjarator import filesystem
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class Api:
+    """API for use by templates.
+
+    Attributes:
+        fs: Filesystem access.
+    """
+
+    fs: filesystem.Filesystem
+
+
+class _Loader(jinja2.BaseLoader):
+    """Jinja template loader."""
+
+    def __init__(self, fs: filesystem.Filesystem) -> None:
+        self._fs = fs
+
+    @override
+    def get_source(
+        self,
+        environment: jinja2.Environment,
+        template: str,
+    ) -> tuple[str, str | None, Callable[[], bool]]:
+        try:
+            return (self._fs.read_text(template), None, lambda: False)
+        except FileNotFoundError as e:
+            raise jinja2.TemplateNotFound(template) from e
+
+
+def render(
+    api: Api,
+    template_name: str,
+    *,
+    delete_created_files_on_error: bool,
+) -> None:
+    """Renders a template."""
+    environment = jinja2.Environment(
+        extensions=("jinja2.ext.do",),
+        undefined=jinja2.StrictUndefined,
+        loader=_Loader(api.fs),
+    )
+    environment.globals["ginjarator"] = api
+    template = environment.get_template(template_name)
+    try:
+        template.render()
+    except Exception:
+        if delete_created_files_on_error:
+            api.fs.delete_created_files()
+        raise
