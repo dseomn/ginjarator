@@ -14,7 +14,6 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
-  "absl-py",
   "black",
   "isort",
   "mypy",
@@ -44,12 +43,6 @@ packages = ["ginjarator"]
 warn_redundant_casts = true
 warn_unreachable = true
 warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-module = [
-  "absl.*",
-]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = """\

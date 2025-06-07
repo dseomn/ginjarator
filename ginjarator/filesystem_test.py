@@ -17,8 +17,7 @@
 import pathlib
 import time
 
-from absl.testing import absltest
-from absl.testing import parameterized
+import pytest
 
 from ginjarator import filesystem
 
@@ -28,55 +27,62 @@ def _sleep_for_mtime() -> None:
     time.sleep(0.01)
 
 
-class FilesystemTest(parameterized.TestCase):
+@pytest.mark.parametrize(
+    "path",
+    (
+        "src/foo",
+        "something-else",
+        "/absolute",
+    ),
+)
+def test_write_text_invalid_path(
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
+    fs = filesystem.Filesystem(tmp_path)
 
-    def setUp(self) -> None:
-        super().setUp()
-        self._root = pathlib.Path(self.create_tempdir().full_path)
-        self._fs = filesystem.Filesystem(self._root)
-
-    @parameterized.parameters("src/foo", "something-else", "/absolute")
-    def test_write_text_invalid_path(self, path: str) -> None:
-        with self.assertRaisesRegex(ValueError, "can be written to"):
-            self._fs.write_text(pathlib.Path(path), "foo")
-
-    def test_write_text_noop(self) -> None:
-        contents = "the contents of the file"
-        path = pathlib.Path("build/some-file")
-        full_path = self._root / path
-        full_path.parent.mkdir(parents=True)
-        full_path.write_text(contents)
-        original_mtime = full_path.stat().st_mtime
-        _sleep_for_mtime()
-
-        self._fs.write_text(path, contents)
-
-        self.assertEqual(contents, full_path.read_text())
-        self.assertEqual(original_mtime, full_path.stat().st_mtime)
-
-    def test_write_text_writes_new_file(self) -> None:
-        contents = "the contents of the file"
-        path = pathlib.Path("build/some-file")
-        full_path = self._root / path
-
-        self._fs.write_text(path, contents)
-
-        self.assertEqual(contents, full_path.read_text())
-
-    def test_write_text_updates_file(self) -> None:
-        contents = "the contents of the file"
-        path = pathlib.Path("build/some-file")
-        full_path = self._root / path
-        full_path.parent.mkdir(parents=True)
-        full_path.write_text("original contents of the file")
-        original_mtime = full_path.stat().st_mtime
-        _sleep_for_mtime()
-
-        self._fs.write_text(path, contents)
-
-        self.assertEqual(contents, full_path.read_text())
-        self.assertLess(original_mtime, full_path.stat().st_mtime)
+    with pytest.raises(ValueError, match="can be written to"):
+        fs.write_text(pathlib.Path(path), "foo")
 
 
-if __name__ == "__main__":
-    absltest.main()
+def test_write_text_noop(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(tmp_path)
+    contents = "the contents of the file"
+    path = pathlib.Path("build/some-file")
+    full_path = tmp_path / path
+    full_path.parent.mkdir(parents=True)
+    full_path.write_text(contents)
+    original_mtime = full_path.stat().st_mtime
+    _sleep_for_mtime()
+
+    fs.write_text(path, contents)
+
+    assert full_path.read_text() == contents
+    assert full_path.stat().st_mtime == original_mtime
+
+
+def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(tmp_path)
+    contents = "the contents of the file"
+    path = pathlib.Path("build/some-file")
+    full_path = tmp_path / path
+
+    fs.write_text(path, contents)
+
+    assert full_path.read_text() == contents
+
+
+def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(tmp_path)
+    contents = "the contents of the file"
+    path = pathlib.Path("build/some-file")
+    full_path = tmp_path / path
+    full_path.parent.mkdir(parents=True)
+    full_path.write_text("original contents of the file")
+    original_mtime = full_path.stat().st_mtime
+    _sleep_for_mtime()
+
+    fs.write_text(path, contents)
+
+    assert full_path.read_text() == contents
+    assert full_path.stat().st_mtime > original_mtime
