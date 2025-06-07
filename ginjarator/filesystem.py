@@ -58,6 +58,7 @@ class Filesystem:
         self._any_allow = self._read_allow | self._write_allow
         self._dependencies = set[pathlib.Path]()
         self._outputs = set[pathlib.Path]()
+        self._created = set[pathlib.Path]()
 
     @property
     def dependencies(self) -> Collection[pathlib.Path]:
@@ -97,6 +98,15 @@ class Filesystem:
             if contents == full_path.read_text():
                 return
         except FileNotFoundError:
-            pass
+            new_file = True
+        else:
+            new_file = False
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(contents)
+        if new_file:
+            self._created.add(full_path)
+
+    def delete_created_files(self) -> None:
+        """Deletes any new files that were created."""
+        for full_path in self._created:
+            full_path.unlink()

@@ -201,3 +201,26 @@ def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime
     assert set(fs.outputs) == {full_path}
+
+
+def test_delete_created_files(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("."),),
+    )
+    (tmp_path / "unrelated").write_text("unrelated-contents")
+    (tmp_path / "unmodified").write_text("unmodified-contents")
+    (tmp_path / "modified").write_text("not-yet-modified-contents")
+
+    fs.write_text("unmodified", "unmodified-contents")
+    fs.write_text("modified", "modified-contents")
+    fs.write_text("new", "new-contents")
+    fs.delete_created_files()
+
+    assert {str(path.relative_to(tmp_path)) for path in tmp_path.iterdir()} == {
+        "unrelated",
+        "unmodified",
+        "modified",
+        # Note that "new" is missing.
+    }
