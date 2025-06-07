@@ -28,7 +28,6 @@ line-length = 80
 [tool.coverage.run]
 omit = [
   "**/*_test.py",
-  "**/conftest.py",
 ]
 
 [tool.isort]
