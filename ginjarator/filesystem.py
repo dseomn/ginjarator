@@ -18,14 +18,7 @@ import pathlib
 
 
 class Filesystem:
-    """Interface to source and build paths in the filesystem.
-
-    Attributes:
-        dependencies: Files that either were read, or will be read during the
-            build step.
-        outputs: Files that either were written, or will be written during the
-            build step.
-    """
+    """Interface to source and build paths in the filesystem."""
 
     def __init__(
         self,
@@ -48,8 +41,18 @@ class Filesystem:
         self._write_allow = frozenset(
             (root / path).resolve() for path in write_allow
         )
-        self.dependencies = set[pathlib.Path]()
-        self.outputs = set[pathlib.Path]()
+        self._dependencies = set[pathlib.Path]()
+        self._outputs = set[pathlib.Path]()
+
+    @property
+    def dependencies(self) -> Collection[pathlib.Path]:
+        """Files that were read, or will be read during the build step."""
+        return frozenset(self._dependencies)
+
+    @property
+    def outputs(self) -> Collection[pathlib.Path]:
+        """Files that were written, or will be written during the build step."""
+        return frozenset(self._outputs)
 
     def read_text(self, path: pathlib.Path) -> str:
         """Returns the contents of a file."""
@@ -61,7 +64,7 @@ class Filesystem:
                 f"{str(path)!r} is not in allowed read paths: "
                 f"{sorted(self._read_allow)}"
             )
-        self.dependencies.add(full_path)
+        self._dependencies.add(full_path)
         return full_path.read_text()
 
     def write_text(self, path: pathlib.Path, contents: str) -> None:
@@ -74,7 +77,7 @@ class Filesystem:
                 f"{str(path)!r} is not in allowed write paths: "
                 f"{sorted(self._write_allow)}"
             )
-        self.outputs.add(full_path)
+        self._outputs.add(full_path)
         try:
             if contents == full_path.read_text():
                 return
