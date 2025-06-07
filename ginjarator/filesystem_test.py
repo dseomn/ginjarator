@@ -34,18 +34,54 @@ def _sleep_for_mtime() -> None:
         "/absolute",
     ),
 )
+def test_read_text_not_allowed(
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
+    fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
+
+    with pytest.raises(ValueError, match="not in allowed read paths"):
+        fs.read_text(pathlib.Path(path))
+
+
+def test_read_text(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(pathlib.Path("src"),),
+        write_allow=(),
+    )
+    contents = "the contents of the file"
+    path = pathlib.Path("src/some-file")
+    full_path = tmp_path / path
+    full_path.parent.mkdir(parents=True)
+    full_path.write_text(contents)
+
+    assert fs.read_text(path) == contents
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "relative",
+        "/absolute",
+    ),
+)
 def test_write_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path, write_allow=())
+    fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
     with pytest.raises(ValueError, match="not in allowed write paths"):
         fs.write_text(pathlib.Path(path), "foo")
 
 
 def test_write_text_noop(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("build"),),
+    )
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path
@@ -61,7 +97,11 @@ def test_write_text_noop(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("build"),),
+    )
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path
@@ -72,7 +112,11 @@ def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("build"),),
+    )
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path

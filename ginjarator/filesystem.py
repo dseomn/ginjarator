@@ -24,18 +24,35 @@ class Filesystem:
         self,
         root: pathlib.Path = pathlib.Path("."),
         *,
+        read_allow: Collection[pathlib.Path],
         write_allow: Collection[pathlib.Path],
     ) -> None:
         """Initializer.
 
         Args:
             root: Top-level path of the project.
+            read_allow: Where files can be read from.
             write_allow: Where files can be written to.
         """
         self._root = root
+        self._read_allow = frozenset(
+            (root / path).resolve() for path in read_allow
+        )
         self._write_allow = frozenset(
             (root / path).resolve() for path in write_allow
         )
+
+    def read_text(self, path: pathlib.Path) -> str:
+        """Returns the contents of a file."""
+        full_path = (self._root / path).resolve()
+        if not any(
+            full_path.is_relative_to(allowed) for allowed in self._read_allow
+        ):
+            raise ValueError(
+                f"{str(path)!r} is not in allowed read paths: "
+                f"{sorted(self._read_allow)}"
+            )
+        return full_path.read_text()
 
     def write_text(self, path: pathlib.Path, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
