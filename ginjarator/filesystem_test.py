@@ -203,6 +203,22 @@ def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
+def test_write_text_macro(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("build"),),
+    )
+    contents = "the contents of the file"
+    path = "build/some-file"
+    full_path = tmp_path / path
+
+    returned = fs.write_text_macro(path, caller=lambda: contents)
+
+    assert full_path.read_text() == contents
+    assert returned == contents
+
+
 def test_delete_created_files(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,

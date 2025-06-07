@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tools for reading source files and writing build outputs."""
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection
 import pathlib
 
 
@@ -105,6 +105,21 @@ class Filesystem:
         full_path.write_text(contents)
         if new_file:
             self._created.add(full_path)
+
+    def write_text_macro(
+        self,
+        path: pathlib.Path | str,
+        caller: Callable[[], str],
+    ) -> str:
+        """Calls write_text() with a jinja macro, and returns the text.
+
+        Args:
+            path: See write_text()
+            caller: Body of a jinja template's {% call %} block.
+        """
+        contents = caller()
+        self.write_text(path, contents)
+        return contents
 
     def delete_created_files(self) -> None:
         """Deletes any new files that were created."""
