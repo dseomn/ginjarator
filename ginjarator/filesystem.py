@@ -21,6 +21,8 @@ def _check_allowed(
     path: pathlib.Path,
     allowed_paths: Collection[pathlib.Path],
 ) -> None:
+    # NOTE: This is meant to prevent mistakes that could make builds less
+    # reliable. It is not meant to be, and isn't, secure.
     if not any(
         path.is_relative_to(allowed_path) for allowed_path in allowed_paths
     ):
