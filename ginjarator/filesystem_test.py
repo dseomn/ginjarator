@@ -34,6 +34,45 @@ def _sleep_for_mtime() -> None:
         "/absolute",
     ),
 )
+def test_add_dependency_not_allowed(
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
+    fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
+
+    with pytest.raises(ValueError, match="not in allowed paths"):
+        fs.add_dependency(pathlib.Path(path))
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "src/some-file",
+        "build/some-file",
+    ),
+)
+def test_add_dependency(
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(pathlib.Path("src"),),
+        write_allow=(pathlib.Path("build"),),
+    )
+
+    fs.add_dependency(pathlib.Path(path))
+
+    assert set(fs.dependencies) == {tmp_path / path}
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "relative",
+        "/absolute",
+    ),
+)
 def test_read_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
@@ -58,6 +97,35 @@ def test_read_text(tmp_path: pathlib.Path) -> None:
 
     assert fs.read_text(path) == contents
     assert set(fs.dependencies) == {full_path}
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "relative",
+        "/absolute",
+    ),
+)
+def test_add_output_not_allowed(
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
+    fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
+
+    with pytest.raises(ValueError, match="not in allowed paths"):
+        fs.add_output(pathlib.Path(path))
+
+
+def test_add_output(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(
+        tmp_path,
+        read_allow=(),
+        write_allow=(pathlib.Path("build"),),
+    )
+
+    fs.add_output(pathlib.Path("build/some-file"))
+
+    assert set(fs.outputs) == {tmp_path / "build/some-file"}
 
 
 @pytest.mark.parametrize(
