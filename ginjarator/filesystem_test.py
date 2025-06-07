@@ -30,23 +30,22 @@ def _sleep_for_mtime() -> None:
 @pytest.mark.parametrize(
     "path",
     (
-        "src/foo",
-        "something-else",
+        "relative",
         "/absolute",
     ),
 )
-def test_write_text_invalid_path(
+def test_write_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, write_allow=())
 
-    with pytest.raises(ValueError, match="can be written to"):
+    with pytest.raises(ValueError, match="not in allowed write paths"):
         fs.write_text(pathlib.Path(path), "foo")
 
 
 def test_write_text_noop(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path
@@ -62,7 +61,7 @@ def test_write_text_noop(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path
@@ -73,7 +72,7 @@ def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
 
 
 def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, write_allow=(pathlib.Path("build"),))
     contents = "the contents of the file"
     path = pathlib.Path("build/some-file")
     full_path = tmp_path / path

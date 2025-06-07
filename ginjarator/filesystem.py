@@ -13,28 +13,39 @@
 # limitations under the License.
 """Tools for reading source files and writing build outputs."""
 
+from collections.abc import Collection
 import pathlib
 
 
 class Filesystem:
-    """Interface to source and build paths in the filesystem.
+    """Interface to source and build paths in the filesystem."""
 
-    Attributes:
-        src: Path to source files.
-        build: Path to build files.
-    """
+    def __init__(
+        self,
+        root: pathlib.Path = pathlib.Path("."),
+        *,
+        write_allow: Collection[pathlib.Path],
+    ) -> None:
+        """Initializer.
 
-    def __init__(self, root: pathlib.Path = pathlib.Path(".")) -> None:
+        Args:
+            root: Top-level path of the project.
+            write_allow: Where files can be written to.
+        """
         self._root = root
-        self.src = (root / "src").resolve()
-        self.build = (root / "build").resolve()
+        self._write_allow = frozenset(
+            (root / path).resolve() for path in write_allow
+        )
 
     def write_text(self, path: pathlib.Path, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
         full_path = (self._root / path).resolve()
-        if not full_path.is_relative_to(self.build):
+        if not any(
+            full_path.is_relative_to(allowed) for allowed in self._write_allow
+        ):
             raise ValueError(
-                f"Only the build directory can be written to, not {str(path)!r}"
+                f"{str(path)!r} is not in allowed write paths: "
+                f"{sorted(self._write_allow)}"
             )
         try:
             if contents == full_path.read_text():
