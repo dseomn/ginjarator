@@ -1,9 +1,16 @@
+[build-system]
+requires = [
+  "setuptools",
+  "setuptools-scm",
+]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "ginjarator"
-version = "0"
 requires-python = ">=3.11"
 dependencies = [
 ]
+dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
@@ -53,3 +60,7 @@ addopts = """\
 
 [tool.setuptools.packages.find]
 include = ["ginjarator", "ginjarator.*"]
+
+[tool.setuptools_scm]
+local_scheme = "node-and-timestamp"
+version_scheme = "no-guess-dev"
