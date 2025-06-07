@@ -17,6 +17,18 @@ from collections.abc import Collection
 import pathlib
 
 
+def _check_allowed(
+    path: pathlib.Path,
+    allowed_paths: Collection[pathlib.Path],
+) -> None:
+    if not any(
+        path.is_relative_to(allowed_path) for allowed_path in allowed_paths
+    ):
+        raise ValueError(
+            f"{str(path)!r} is not in allowed paths: {sorted(allowed_paths)}"
+        )
+
+
 class Filesystem:
     """Interface to source and build paths in the filesystem."""
 
@@ -57,26 +69,14 @@ class Filesystem:
     def read_text(self, path: pathlib.Path) -> str:
         """Returns the contents of a file."""
         full_path = (self._root / path).resolve()
-        if not any(
-            full_path.is_relative_to(allowed) for allowed in self._read_allow
-        ):
-            raise ValueError(
-                f"{str(path)!r} is not in allowed read paths: "
-                f"{sorted(self._read_allow)}"
-            )
+        _check_allowed(full_path, self._read_allow)
         self._dependencies.add(full_path)
         return full_path.read_text()
 
     def write_text(self, path: pathlib.Path, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
         full_path = (self._root / path).resolve()
-        if not any(
-            full_path.is_relative_to(allowed) for allowed in self._write_allow
-        ):
-            raise ValueError(
-                f"{str(path)!r} is not in allowed write paths: "
-                f"{sorted(self._write_allow)}"
-            )
+        _check_allowed(full_path, self._write_allow)
         self._outputs.add(full_path)
         try:
             if contents == full_path.read_text():

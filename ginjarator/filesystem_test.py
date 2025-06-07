@@ -40,7 +40,7 @@ def test_read_text_not_allowed(
 ) -> None:
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
-    with pytest.raises(ValueError, match="not in allowed read paths"):
+    with pytest.raises(ValueError, match="not in allowed paths"):
         fs.read_text(pathlib.Path(path))
 
 
@@ -73,7 +73,7 @@ def test_write_text_not_allowed(
 ) -> None:
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
-    with pytest.raises(ValueError, match="not in allowed write paths"):
+    with pytest.raises(ValueError, match="not in allowed paths"):
         fs.write_text(pathlib.Path(path), "foo")
 
 
