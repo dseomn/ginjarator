@@ -67,26 +67,26 @@ class Filesystem:
         """Files that were written, or will be written during the build step."""
         return frozenset(self._outputs)
 
-    def add_dependency(self, path: pathlib.Path) -> None:
+    def add_dependency(self, path: pathlib.Path | str) -> None:
         """Adds a dependency."""
         full_path = (self._root / path).resolve()
         _check_allowed(full_path, self._any_allow)
         self._dependencies.add(full_path)
 
-    def read_text(self, path: pathlib.Path) -> str:
+    def read_text(self, path: pathlib.Path | str) -> str:
         """Returns the contents of a file."""
         full_path = (self._root / path).resolve()
         _check_allowed(full_path, self._read_allow)
         self._dependencies.add(full_path)
         return full_path.read_text()
 
-    def add_output(self, path: pathlib.Path) -> None:
+    def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
         full_path = (self._root / path).resolve()
         _check_allowed(full_path, self._write_allow)
         self._outputs.add(full_path)
 
-    def write_text(self, path: pathlib.Path, contents: str) -> None:
+    def write_text(self, path: pathlib.Path | str, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
         full_path = (self._root / path).resolve()
         _check_allowed(full_path, self._write_allow)

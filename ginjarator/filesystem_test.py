@@ -41,7 +41,7 @@ def test_add_dependency_not_allowed(
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.add_dependency(pathlib.Path(path))
+        fs.add_dependency(path)
 
 
 @pytest.mark.parametrize(
@@ -61,7 +61,7 @@ def test_add_dependency(
         write_allow=(pathlib.Path("build"),),
     )
 
-    fs.add_dependency(pathlib.Path(path))
+    fs.add_dependency(path)
 
     assert set(fs.dependencies) == {tmp_path / path}
 
@@ -80,7 +80,7 @@ def test_read_text_not_allowed(
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.read_text(pathlib.Path(path))
+        fs.read_text(path)
 
 
 def test_read_text(tmp_path: pathlib.Path) -> None:
@@ -90,7 +90,7 @@ def test_read_text(tmp_path: pathlib.Path) -> None:
         write_allow=(),
     )
     contents = "the contents of the file"
-    path = pathlib.Path("src/some-file")
+    path = "src/some-file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
     full_path.write_text(contents)
@@ -113,7 +113,7 @@ def test_add_output_not_allowed(
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.add_output(pathlib.Path(path))
+        fs.add_output(path)
 
 
 def test_add_output(tmp_path: pathlib.Path) -> None:
@@ -123,7 +123,7 @@ def test_add_output(tmp_path: pathlib.Path) -> None:
         write_allow=(pathlib.Path("build"),),
     )
 
-    fs.add_output(pathlib.Path("build/some-file"))
+    fs.add_output("build/some-file")
 
     assert set(fs.outputs) == {tmp_path / "build/some-file"}
 
@@ -142,7 +142,7 @@ def test_write_text_not_allowed(
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.write_text(pathlib.Path(path), "foo")
+        fs.write_text(path, "foo")
 
 
 def test_write_text_noop(tmp_path: pathlib.Path) -> None:
@@ -152,7 +152,7 @@ def test_write_text_noop(tmp_path: pathlib.Path) -> None:
         write_allow=(pathlib.Path("build"),),
     )
     contents = "the contents of the file"
-    path = pathlib.Path("build/some-file")
+    path = "build/some-file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
     full_path.write_text(contents)
@@ -173,7 +173,7 @@ def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
         write_allow=(pathlib.Path("build"),),
     )
     contents = "the contents of the file"
-    path = pathlib.Path("build/some-file")
+    path = "build/some-file"
     full_path = tmp_path / path
 
     fs.write_text(path, contents)
@@ -189,7 +189,7 @@ def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
         write_allow=(pathlib.Path("build"),),
     )
     contents = "the contents of the file"
-    path = pathlib.Path("build/some-file")
+    path = "build/some-file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
     full_path.write_text("original contents of the file")
