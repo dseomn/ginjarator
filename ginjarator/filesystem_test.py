@@ -57,6 +57,7 @@ def test_read_text(tmp_path: pathlib.Path) -> None:
     full_path.write_text(contents)
 
     assert fs.read_text(path) == contents
+    assert set(fs.dependencies) == {full_path}
 
 
 @pytest.mark.parametrize(
@@ -94,6 +95,7 @@ def test_write_text_noop(tmp_path: pathlib.Path) -> None:
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime == original_mtime
+    assert set(fs.outputs) == {full_path}
 
 
 def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
@@ -109,6 +111,7 @@ def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
     fs.write_text(path, contents)
 
     assert full_path.read_text() == contents
+    assert set(fs.outputs) == {full_path}
 
 
 def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
@@ -129,3 +132,4 @@ def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime
+    assert set(fs.outputs) == {full_path}
