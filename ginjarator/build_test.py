@@ -22,17 +22,18 @@ from ginjarator import build
 
 
 @pytest.mark.parametrize(
-    "value,expected",
+    "value,escape_shell,expected",
     (
-        ("foo: $bar", "foo$:$ $$bar"),
-        (["foo", "bar"], "foo bar"),
-        (("foo", "bar"), "foo bar"),
-        ({"foo", "bar"}, "bar foo"),
-        (frozenset(("foo", "bar")), "bar foo"),
+        ("foo: $bar", True, "'foo$:$ $$bar'"),
+        ("foo: $bar", False, "foo$:$ $$bar"),
+        (["foo", "bar"], False, "foo bar"),
+        (("foo", "bar"), False, "foo bar"),
+        ({"foo", "bar"}, False, "bar foo"),
+        (frozenset(("foo", "bar")), False, "bar foo"),
     ),
 )
-def test_to_ninja(value: Any, expected: str) -> None:
-    assert build.to_ninja(value) == expected
+def test_to_ninja(value: Any, escape_shell: bool, expected: str) -> None:
+    assert build.to_ninja(value, escape_shell=escape_shell) == expected
 
 
 @pytest.mark.parametrize(
@@ -45,4 +46,4 @@ def test_to_ninja(value: Any, expected: str) -> None:
 )
 def test_to_ninja_error(value: Any) -> None:
     with pytest.raises(NotImplementedError, match="Can't convert"):
-        build.to_ninja(value)
+        build.to_ninja(value, escape_shell=False)

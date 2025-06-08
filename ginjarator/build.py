@@ -13,13 +13,16 @@
 # limitations under the License.
 """Build system."""
 
+import shlex
 from typing import Any
 
 
-def to_ninja(value: Any) -> str:
+def to_ninja(value: Any, *, escape_shell: bool) -> str:
     """Returns a value in ninja's syntax."""
     # https://ninja-build.org/manual.html#ref_lexer
     match value:
+        case str() if escape_shell:
+            return to_ninja(shlex.quote(value), escape_shell=False)
         case str() if not set(value) & set("#\n"):
             return value.translate(
                 str.maketrans(
@@ -33,9 +36,11 @@ def to_ninja(value: Any) -> str:
                 )
             )
         case list() | tuple():
-            return " ".join(map(to_ninja, value))
+            return " ".join(
+                to_ninja(item, escape_shell=escape_shell) for item in value
+            )
         case set() | frozenset():
-            return to_ninja(sorted(value))
+            return to_ninja(sorted(value), escape_shell=escape_shell)
         case _:
             raise NotImplementedError(
                 f"Can't convert {value!r} to ninja syntax."
