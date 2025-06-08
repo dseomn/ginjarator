@@ -13,6 +13,7 @@
 # limitations under the License.
 """Build system."""
 
+import pathlib
 import shlex
 from typing import Any
 
@@ -35,6 +36,8 @@ def to_ninja(value: Any, *, escape_shell: bool) -> str:
                     )
                 )
             )
+        case pathlib.Path():
+            return to_ninja(str(value), escape_shell=escape_shell)
         case list() | tuple():
             return " ".join(
                 to_ninja(item, escape_shell=escape_shell) for item in value
