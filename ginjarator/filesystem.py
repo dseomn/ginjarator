@@ -52,12 +52,8 @@ class Filesystem:
             write_allow: Where files can be written to.
         """
         self._root = root
-        self._read_allow = frozenset(
-            (root / path).resolve() for path in read_allow
-        )
-        self._write_allow = frozenset(
-            (root / path).resolve() for path in write_allow
-        )
+        self._read_allow = frozenset(map(self.resolve, read_allow))
+        self._write_allow = frozenset(map(self.resolve, write_allow))
         self._any_allow = self._read_allow | self._write_allow
         self._dependencies = set[pathlib.Path]()
         self._outputs = set[pathlib.Path]()
@@ -73,28 +69,32 @@ class Filesystem:
         """Files that were written, or will be written during the build step."""
         return frozenset(self._outputs)
 
+    def resolve(self, path: pathlib.Path | str) -> pathlib.Path:
+        """Returns the canonical full path."""
+        return (self._root / path).resolve()
+
     def add_dependency(self, path: pathlib.Path | str) -> None:
         """Adds a dependency."""
-        full_path = (self._root / path).resolve()
+        full_path = self.resolve(path)
         _check_allowed(full_path, self._any_allow)
         self._dependencies.add(full_path)
 
     def read_text(self, path: pathlib.Path | str) -> str:
         """Returns the contents of a file."""
-        full_path = (self._root / path).resolve()
+        full_path = self.resolve(path)
         _check_allowed(full_path, self._read_allow)
         self._dependencies.add(full_path)
         return full_path.read_text()
 
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
-        full_path = (self._root / path).resolve()
+        full_path = self.resolve(path)
         _check_allowed(full_path, self._write_allow)
         self._outputs.add(full_path)
 
     def write_text(self, path: pathlib.Path | str, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
-        full_path = (self._root / path).resolve()
+        full_path = self.resolve(path)
         _check_allowed(full_path, self._write_allow)
         self._outputs.add(full_path)
         try:

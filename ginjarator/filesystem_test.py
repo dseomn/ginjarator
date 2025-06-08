@@ -28,6 +28,11 @@ def _sleep_for_mtime() -> None:
     time.sleep(0.01)
 
 
+def test_resolve(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
+    assert fs.resolve("foo") == tmp_path / "foo"
+
+
 @pytest.mark.parametrize(
     "path",
     (
