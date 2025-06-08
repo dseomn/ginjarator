@@ -126,7 +126,6 @@ class Filesystem:
 
     def delete_created_files(self) -> None:
         """Deletes any new files that were created."""
-        # TODO: get rid of this, and disallow creating files in the first pass?
         for full_path in self._created:
             full_path.unlink()
 
