@@ -80,6 +80,8 @@ def render(
                     dependencies=sorted(map(str, api.fs.dependencies)),
                     outputs=sorted(map(str, api.fs.outputs)),
                 ),
+                ensure_ascii=False,
+                indent=2,
                 sort_keys=True,
             ),
         )
