@@ -15,6 +15,7 @@
 
 from collections.abc import Callable
 import dataclasses
+import json
 from typing import override
 
 import jinja2
@@ -66,8 +67,22 @@ def render(
     )
     environment.globals["ginjarator"] = api
     template = environment.get_template(template_name)
+    template_state_path = filesystem.template_state_path(template_name)
     try:
         template.render()
+        # Manually add the output so that api.fs.outputs has it before
+        # write_text() is called.
+        api.fs.add_output(template_state_path)
+        api.fs.write_text(
+            template_state_path,
+            json.dumps(
+                dict(
+                    dependencies=sorted(map(str, api.fs.dependencies)),
+                    outputs=sorted(map(str, api.fs.outputs)),
+                ),
+                sort_keys=True,
+            ),
+        )
     except Exception:
         if delete_created_files_on_error:
             api.fs.delete_created_files()

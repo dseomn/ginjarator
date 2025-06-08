@@ -14,6 +14,7 @@
 
 # pylint: disable=missing-module-docstring
 
+import json
 import pathlib
 
 import jinja2
@@ -80,7 +81,19 @@ def test_render(root_path: pathlib.Path, api: render.Api) -> None:
         {% endcall %}
         """
     )
+    template_state_path = root_path / filesystem.template_state_path(
+        "template.jinja"
+    )
 
     render.render(api, "template.jinja", delete_created_files_on_error=False)
 
     assert (root_path / "output").read_text() == "3"
+    assert json.loads(template_state_path.read_text()) == dict(
+        dependencies=[str(root_path / "template.jinja")],
+        outputs=sorted(
+            (
+                str(root_path / "output"),
+                str(template_state_path),
+            )
+        ),
+    )
