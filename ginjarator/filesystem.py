@@ -15,6 +15,9 @@
 
 from collections.abc import Callable, Collection
 import pathlib
+import urllib.parse
+
+_INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
 def _check_allowed(
@@ -123,5 +126,19 @@ class Filesystem:
 
     def delete_created_files(self) -> None:
         """Deletes any new files that were created."""
+        # TODO: get rid of this, and disallow creating files in the first pass?
         for full_path in self._created:
             full_path.unlink()
+
+
+def internal_path(*components: str) -> pathlib.Path:
+    """Returns a path for internal state.
+
+    Args:
+        *components: Path components. Each one is escaped to remove "/", so
+            other paths can be used as single components. However, "." and ".."
+            are not escaped.
+    """
+    return _INTERNAL_DIR.joinpath(
+        *(urllib.parse.quote(component, safe="") for component in components)
+    )

@@ -15,6 +15,7 @@
 # pylint: disable=missing-module-docstring
 
 import pathlib
+import re
 import time
 
 import pytest
@@ -240,3 +241,10 @@ def test_delete_created_files(tmp_path: pathlib.Path) -> None:
         "modified",
         # Note that "new" is missing.
     }
+
+
+def test_internal_path() -> None:
+    assert re.fullmatch(
+        r"\.ginjarator/dependencies/foo%2[Ff]bar\.json",
+        str(filesystem.internal_path("dependencies", "foo/bar.json")),
+    )
