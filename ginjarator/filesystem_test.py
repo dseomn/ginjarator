@@ -248,3 +248,9 @@ def test_internal_path() -> None:
         r"\.ginjarator/dependencies/foo%2[Ff]bar\.json",
         str(filesystem.internal_path("dependencies", "foo/bar.json")),
     )
+
+
+def test_template_state_path() -> None:
+    assert filesystem.template_state_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.json"
+    )

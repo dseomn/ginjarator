@@ -141,3 +141,8 @@ def internal_path(*components: str) -> pathlib.Path:
     return _INTERNAL_DIR.joinpath(
         *(urllib.parse.quote(component, safe="") for component in components)
     )
+
+
+def template_state_path(template_name: str) -> pathlib.Path:
+    """Returns the path for template state."""
+    return internal_path("templates", f"{template_name}.json")
