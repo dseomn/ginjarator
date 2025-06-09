@@ -145,7 +145,7 @@ class Filesystem:
             # On error, delete any new files that were created. Ninja might not
             # know about them yet, so its clean tool wouldn't remove them.
             for full_path in self._created:
-                full_path.unlink()
+                full_path.unlink(missing_ok=True)
         return False
 
     @property
