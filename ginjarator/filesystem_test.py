@@ -63,14 +63,6 @@ def _exit_stack() -> Generator[contextlib.ExitStack, None, None]:
             [],
             r"must not overlap",
         ),
-        (
-            """
-            source_paths = []
-            build_paths = ["foo"]
-            """,
-            ["bar"],
-            r"under build paths",
-        ),
     ),
 )
 def test_filesystem_invalid_paths(

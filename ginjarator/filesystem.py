@@ -95,12 +95,6 @@ class Filesystem:
         ):
             raise ValueError("Source and build paths must not overlap.")
 
-        if not all(
-            _is_relative_to_any(build_done_path, self._build_paths)
-            for build_done_path in self._build_done_paths
-        ):
-            raise ValueError("Build done paths must all be under build paths.")
-
         self._readable_ever_paths = frozenset(
             (
                 self.resolve(CONFIG_FILE),
