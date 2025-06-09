@@ -28,15 +28,21 @@ class Config:
     Attributes:
         source_paths: Source files/directories.
         build_paths: Build files/directories.
+        templates: Templates to render.
     """
 
     source_paths: Collection[pathlib.Path]
     build_paths: Collection[pathlib.Path]
+    templates: Collection[pathlib.Path]
 
     @classmethod
     def parse(cls, raw: Any, /) -> Self:
         """Returns the parsed config from toml data."""
-        if unexpected_keys := raw.keys() - {"source_paths", "build_paths"}:
+        if unexpected_keys := raw.keys() - {
+            "source_paths",
+            "build_paths",
+            "templates",
+        }:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
             source_paths=tuple(
@@ -45,4 +51,5 @@ class Config:
             build_paths=tuple(
                 map(pathlib.Path, raw.get("build_paths", ["build"]))
             ),
+            templates=tuple(map(pathlib.Path, raw.get("templates", []))),
         )
