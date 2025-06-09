@@ -15,8 +15,12 @@
 
 from collections.abc import Callable, Collection
 import pathlib
+import tomllib
 import urllib.parse
 
+from ginjarator import config
+
+CONFIG_FILE = pathlib.Path("ginjarator.toml")
 _INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
@@ -40,32 +44,48 @@ def _check_allowed(
 
 
 class Filesystem:
-    """Interface to source and build paths in the filesystem."""
+    """Interface to source and build paths in the filesystem.
+
+    In source paths, reading is always allowed and writing is never allowed. In
+    build paths, reading is only allowed for paths in build_done_paths and
+    writing is always allowed.
+    """
 
     def __init__(
         self,
         root: pathlib.Path = pathlib.Path("."),
         *,
-        source_paths: Collection[pathlib.Path] = (pathlib.Path("src"),),
-        build_paths: Collection[pathlib.Path] = (pathlib.Path("build"),),
         build_done_paths: Collection[pathlib.Path] = (),
     ) -> None:
         """Initializer.
 
         Args:
             root: Top-level path of the project.
-            source_paths: Which files/directories are sources. Reading is always
-                allowed and writing is never allowed.
-            build_paths: Which files/directories are generated. Reading is only
-                allowed for paths in build_done_paths and writing is always
-                allowed.
-            build_done_paths: Which files/directories from build_paths have
+            build_done_paths: Which files/directories from build paths have
                 already finished building.
         """
         self._root = root
-        self._source_paths = frozenset(map(self.resolve, source_paths))
-        self._build_paths = frozenset(map(self.resolve, build_paths))
+
+        # This has to use pathlib.Path.read_text() instead of self.read_text()
+        # because of the circular dependency otherwise. In theory, every
+        # template should depend on the config file, but I think in most
+        # circumstances the extra rebuilding wouldn't be worth the extra
+        # correctness. If that turns out to be wrong, self.add_dependency() can
+        # be called after the path attributes are initialized below.
+        try:
+            config_ = config.Config.parse(
+                tomllib.loads(self.resolve(CONFIG_FILE).read_text())
+            )
+        except FileNotFoundError:
+            config_ = config.Config.parse({})
+
+        self._source_paths = frozenset(map(self.resolve, config_.source_paths))
+        self._build_paths = frozenset(map(self.resolve, config_.build_paths))
         self._build_done_paths = frozenset(map(self.resolve, build_done_paths))
+
+        # Prevent accidentally using anything other than the paths from the
+        # config object, without adding a dependency on it first.
+        del config_
 
         if any(
             _is_relative_to_any(source_path, self._build_paths)
