@@ -23,9 +23,11 @@ from typing import Any, Self
 class Config:
     """Config.
 
+    All paths are relative to the config file.
+
     Attributes:
-        source_paths: Source files/directories, relative to the config file.
-        build_paths: Build files/directories, relative to the config file.
+        source_paths: Source files/directories.
+        build_paths: Build files/directories.
     """
 
     source_paths: Collection[pathlib.Path]
