@@ -175,6 +175,12 @@ class Filesystem:
         else:
             return None
 
+    def read_config(self) -> config.Config:
+        """Returns the config."""
+        contents = self.read_text(CONFIG_FILE)
+        assert contents is not None  # CONFIG_FILE is always readable.
+        return config.Config.parse(tomllib.loads(contents))
+
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
         full_path = self.resolve(path)
