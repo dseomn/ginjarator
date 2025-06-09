@@ -21,6 +21,7 @@ import urllib.parse
 from ginjarator import config
 
 CONFIG_FILE = pathlib.Path("ginjarator.toml")
+BUILD_FILE = pathlib.Path("build.ninja")
 _INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
@@ -120,6 +121,7 @@ class Filesystem:
         )
         self._writable_paths = frozenset(
             (
+                self.resolve(BUILD_FILE),
                 self.resolve(_INTERNAL_DIR),
                 *self._build_paths,
             )
