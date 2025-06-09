@@ -109,12 +109,12 @@ class Filesystem:
 
     @property
     def dependencies(self) -> Collection[pathlib.Path]:
-        """Files that were read, or will be read during the build step."""
+        """Files that were read, or will be read in another pass."""
         return frozenset(self._dependencies)
 
     @property
     def outputs(self) -> Collection[pathlib.Path]:
-        """Files that were written, or will be written during the build step."""
+        """Files that were written, or will be written in another pass."""
         return frozenset(self._outputs)
 
     def resolve(self, path: pathlib.Path | str) -> pathlib.Path:
