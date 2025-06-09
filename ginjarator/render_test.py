@@ -27,6 +27,7 @@ from ginjarator import render
 
 @pytest.fixture(name="root_path")
 def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
+    (tmp_path / "ginjarator.toml").write_text("")
     (tmp_path / "src").mkdir()
     return tmp_path
 

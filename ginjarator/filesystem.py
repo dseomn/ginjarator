@@ -74,12 +74,9 @@ class Filesystem:
         # circumstances the extra rebuilding wouldn't be worth the extra
         # correctness. If that turns out to be wrong, self.add_dependency() can
         # be called after the path attributes are initialized below.
-        try:
-            config_ = config.Config.parse(
-                tomllib.loads(self.resolve(CONFIG_FILE).read_text())
-            )
-        except FileNotFoundError:
-            config_ = config.Config.parse({})
+        config_ = config.Config.parse(
+            tomllib.loads(self.resolve(CONFIG_FILE).read_text())
+        )
 
         self._source_paths = frozenset(map(self.resolve, config_.source_paths))
         self._build_paths = frozenset(map(self.resolve, config_.build_paths))

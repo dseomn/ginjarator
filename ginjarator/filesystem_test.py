@@ -87,13 +87,8 @@ def test_filesystem_invalid_paths(
         )
 
 
-def test_filesystem_default_config(tmp_path: pathlib.Path) -> None:
-    """Tests that nothing is raised if CONFIG_FILE does not exist."""
-    with filesystem.Filesystem(tmp_path):
-        pass
-
-
 def test_filesystem_exit_error(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     (tmp_path / "build").mkdir()
     (tmp_path / "build/unrelated").write_text("unrelated-contents")
     (tmp_path / "build/unmodified").write_text("unmodified-contents")
@@ -118,6 +113,7 @@ def test_filesystem_exit_error(tmp_path: pathlib.Path) -> None:
 
 
 def test_filesystem_exit_success(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     (tmp_path / "build").mkdir()
     (tmp_path / "build/unrelated").write_text("unrelated-contents")
     (tmp_path / "build/unmodified").write_text("unmodified-contents")
@@ -143,6 +139,7 @@ def test_filesystem_resolve(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     assert fs.resolve("foo") == tmp_path / "foo"
 
@@ -159,6 +156,7 @@ def test_filesystem_add_dependency_not_allowed(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
@@ -177,6 +175,7 @@ def test_filesystem_add_dependency(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     fs.add_dependency(path)
@@ -196,6 +195,7 @@ def test_filesystem_read_text_not_allowed(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
@@ -214,6 +214,7 @@ def test_filesystem_read_text_returns_contents(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(
         filesystem.Filesystem(
             tmp_path,
@@ -233,6 +234,7 @@ def test_filesystem_read_text_returns_none(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     path = "build/not-built-yet"
     full_path = tmp_path / path
@@ -256,6 +258,7 @@ def test_filesystem_add_output_not_allowed(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
@@ -266,6 +269,7 @@ def test_filesystem_add_output(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     fs.add_output("build/some-file")
@@ -286,6 +290,7 @@ def test_filesystem_write_text_not_allowed(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
@@ -296,6 +301,7 @@ def test_filesystem_write_text_noop(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
@@ -316,6 +322,7 @@ def test_filesystem_write_text_writes_new_file(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
@@ -331,6 +338,7 @@ def test_filesystem_write_text_updates_file(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
@@ -351,6 +359,7 @@ def test_filesystem_write_text_macro(
     tmp_path: pathlib.Path,
     exit_stack: contextlib.ExitStack,
 ) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
     fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
