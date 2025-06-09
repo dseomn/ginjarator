@@ -16,6 +16,7 @@
 from collections.abc import Callable, Collection
 import pathlib
 import tomllib
+from typing import Any, Literal, Self
 import urllib.parse
 
 from ginjarator import config
@@ -131,6 +132,22 @@ class Filesystem:
         self._outputs = set[pathlib.Path]()
         self._created = set[pathlib.Path]()
 
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: Any,
+        traceback: Any,
+    ) -> Literal[False]:
+        if exc_type is not None:
+            # On error, delete any new files that were created. Ninja might not
+            # know about them yet, so its clean tool wouldn't remove them.
+            for full_path in self._created:
+                full_path.unlink()
+        return False
+
     @property
     def dependencies(self) -> Collection[pathlib.Path]:
         """Files that were read, or will be read in another pass."""
@@ -198,11 +215,6 @@ class Filesystem:
         contents = caller()
         self.write_text(path, contents)
         return contents
-
-    def delete_created_files(self) -> None:
-        """Deletes any new files that were created."""
-        for full_path in self._created:
-            full_path.unlink()
 
 
 def internal_path(*components: str) -> pathlib.Path:

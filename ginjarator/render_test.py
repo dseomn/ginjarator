@@ -14,6 +14,7 @@
 
 # pylint: disable=missing-module-docstring
 
+from collections.abc import Generator
 import json
 import pathlib
 
@@ -31,8 +32,11 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 @pytest.fixture(name="fs")
-def _fs(root_path: pathlib.Path) -> filesystem.Filesystem:
-    return filesystem.Filesystem(root_path)
+def _fs(
+    root_path: pathlib.Path,
+) -> Generator[filesystem.Filesystem, None, None]:
+    with filesystem.Filesystem(root_path) as fs:
+        yield fs
 
 
 @pytest.fixture(name="api")
@@ -53,32 +57,7 @@ def test_render_template_not_found(
     api: render.Api,
 ) -> None:
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
-        render.render(api, template_name, delete_created_files_on_error=False)
-
-
-@pytest.mark.parametrize("delete_created_files_on_error", (True, False))
-def test_render_error(
-    delete_created_files_on_error: bool,
-    root_path: pathlib.Path,
-    api: render.Api,
-) -> None:
-    (root_path / "src/template.jinja").write_text(
-        """
-        {% do ginjarator.fs.write_text("build/output", "some text") %}
-        {{ this_variable_is_not_defined }}
-        """
-    )
-
-    with pytest.raises(jinja2.UndefinedError):
-        render.render(
-            api,
-            "src/template.jinja",
-            delete_created_files_on_error=delete_created_files_on_error,
-        )
-
-    assert (root_path / "build/output").exists() == (
-        not delete_created_files_on_error
-    )
+        render.render(api, template_name)
 
 
 def test_render(root_path: pathlib.Path, api: render.Api) -> None:
@@ -93,11 +72,7 @@ def test_render(root_path: pathlib.Path, api: render.Api) -> None:
         "src/template.jinja"
     )
 
-    render.render(
-        api,
-        "src/template.jinja",
-        delete_created_files_on_error=False,
-    )
+    render.render(api, "src/template.jinja")
 
     assert (root_path / "build/output").read_text() == "3"
     assert json.loads(template_state_path.read_text()) == dict(

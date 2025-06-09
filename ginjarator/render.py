@@ -56,12 +56,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.resolve(template)), lambda: False)
 
 
-def render(
-    api: Api,
-    template_name: str,
-    *,
-    delete_created_files_on_error: bool,
-) -> None:
+def render(api: Api, template_name: str) -> None:
     """Renders a template."""
     environment = jinja2.Environment(
         extensions=("jinja2.ext.do",),
@@ -71,24 +66,19 @@ def render(
     environment.globals["ginjarator"] = api
     template = environment.get_template(template_name)
     template_state_path = filesystem.template_state_path(template_name)
-    try:
-        template.render()
-        # Manually add the output so that api.fs.outputs has it before
-        # write_text() is called.
-        api.fs.add_output(template_state_path)
-        api.fs.write_text(
-            template_state_path,
-            json.dumps(
-                dict(
-                    dependencies=sorted(map(str, api.fs.dependencies)),
-                    outputs=sorted(map(str, api.fs.outputs)),
-                ),
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
+    template.render()
+    # Manually add the output so that api.fs.outputs has it before
+    # write_text() is called.
+    api.fs.add_output(template_state_path)
+    api.fs.write_text(
+        template_state_path,
+        json.dumps(
+            dict(
+                dependencies=sorted(map(str, api.fs.dependencies)),
+                outputs=sorted(map(str, api.fs.outputs)),
             ),
-        )
-    except Exception:
-        if delete_created_files_on_error:
-            api.fs.delete_created_files()
-        raise
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ),
+    )

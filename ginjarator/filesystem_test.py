@@ -14,6 +14,8 @@
 
 # pylint: disable=missing-module-docstring
 
+from collections.abc import Generator
+import contextlib
 import pathlib
 import re
 import time
@@ -26,6 +28,12 @@ from ginjarator import filesystem
 def _sleep_for_mtime() -> None:
     """Prevents writes before/after calling this from having the same mtime."""
     time.sleep(0.01)
+
+
+@pytest.fixture(name="exit_stack")
+def _exit_stack() -> Generator[contextlib.ExitStack, None, None]:
+    with contextlib.ExitStack() as stack:
+        yield stack
 
 
 @pytest.mark.parametrize(
@@ -81,11 +89,61 @@ def test_filesystem_invalid_paths(
 
 def test_filesystem_default_config(tmp_path: pathlib.Path) -> None:
     """Tests that nothing is raised if CONFIG_FILE does not exist."""
-    filesystem.Filesystem(tmp_path)
+    with filesystem.Filesystem(tmp_path):
+        pass
 
 
-def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_exit_error(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build/unrelated").write_text("unrelated-contents")
+    (tmp_path / "build/unmodified").write_text("unmodified-contents")
+    (tmp_path / "build/modified").write_text("not-yet-modified-contents")
+
+    with pytest.raises(ValueError, match="kumquat"):
+        with filesystem.Filesystem(tmp_path) as fs:
+            fs.write_text("build/unmodified", "unmodified-contents")
+            fs.write_text("build/modified", "modified-contents")
+            fs.write_text("build/new", "new-contents")
+            raise ValueError("kumquat")
+
+    assert {
+        str(path.relative_to(tmp_path))
+        for path in (tmp_path / "build").iterdir()
+    } == {
+        "build/unrelated",
+        "build/unmodified",
+        "build/modified",
+        # Note that "build/new" is missing.
+    }
+
+
+def test_filesystem_exit_success(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build/unrelated").write_text("unrelated-contents")
+    (tmp_path / "build/unmodified").write_text("unmodified-contents")
+    (tmp_path / "build/modified").write_text("not-yet-modified-contents")
+
+    with filesystem.Filesystem(tmp_path) as fs:
+        fs.write_text("build/unmodified", "unmodified-contents")
+        fs.write_text("build/modified", "modified-contents")
+        fs.write_text("build/new", "new-contents")
+
+    assert {
+        str(path.relative_to(tmp_path))
+        for path in (tmp_path / "build").iterdir()
+    } == {
+        "build/unrelated",
+        "build/unmodified",
+        "build/modified",
+        "build/new",  # Not deleted.
+    }
+
+
+def test_filesystem_resolve(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     assert fs.resolve("foo") == tmp_path / "foo"
 
 
@@ -99,8 +157,9 @@ def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
 def test_filesystem_add_dependency_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_dependency(path)
@@ -116,8 +175,9 @@ def test_filesystem_add_dependency_not_allowed(
 def test_filesystem_add_dependency(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     fs.add_dependency(path)
 
@@ -134,8 +194,9 @@ def test_filesystem_add_dependency(
 def test_filesystem_read_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.read_text(path)
@@ -151,10 +212,13 @@ def test_filesystem_read_text_not_allowed(
 def test_filesystem_read_text_returns_contents(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(
-        tmp_path,
-        build_done_paths=(pathlib.Path("build/already-built"),),
+    fs = exit_stack.enter_context(
+        filesystem.Filesystem(
+            tmp_path,
+            build_done_paths=(pathlib.Path("build/already-built"),),
+        )
     )
     contents = "the contents of the file"
     full_path = tmp_path / path
@@ -165,8 +229,11 @@ def test_filesystem_read_text_returns_contents(
     assert set(fs.dependencies) == {full_path}
 
 
-def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_read_text_returns_none(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     path = "build/not-built-yet"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
@@ -187,15 +254,19 @@ def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
 def test_filesystem_add_output_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_output(path)
 
 
-def test_filesystem_add_output(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_add_output(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     fs.add_output("build/some-file")
 
@@ -213,15 +284,19 @@ def test_filesystem_add_output(tmp_path: pathlib.Path) -> None:
 def test_filesystem_write_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
 ) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.write_text(path, "foo")
 
 
-def test_filesystem_write_text_noop(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_write_text_noop(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -237,8 +312,11 @@ def test_filesystem_write_text_noop(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_write_text_writes_new_file(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -249,8 +327,11 @@ def test_filesystem_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_updates_file(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_write_text_updates_file(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -266,8 +347,11 @@ def test_filesystem_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_macro(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
+def test_filesystem_write_text_macro(
+    tmp_path: pathlib.Path,
+    exit_stack: contextlib.ExitStack,
+) -> None:
+    fs = exit_stack.enter_context(filesystem.Filesystem(tmp_path))
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -276,29 +360,6 @@ def test_filesystem_write_text_macro(tmp_path: pathlib.Path) -> None:
 
     assert full_path.read_text() == contents
     assert returned == contents
-
-
-def test_filesystem_delete_created_files(tmp_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(tmp_path)
-    (tmp_path / "build").mkdir()
-    (tmp_path / "build/unrelated").write_text("unrelated-contents")
-    (tmp_path / "build/unmodified").write_text("unmodified-contents")
-    (tmp_path / "build/modified").write_text("not-yet-modified-contents")
-
-    fs.write_text("build/unmodified", "unmodified-contents")
-    fs.write_text("build/modified", "modified-contents")
-    fs.write_text("build/new", "new-contents")
-    fs.delete_created_files()
-
-    assert {
-        str(path.relative_to(tmp_path))
-        for path in (tmp_path / "build").iterdir()
-    } == {
-        "build/unrelated",
-        "build/unmodified",
-        "build/modified",
-        # Note that "build/new" is missing.
-    }
 
 
 def test_internal_path() -> None:
