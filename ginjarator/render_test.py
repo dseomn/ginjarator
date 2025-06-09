@@ -40,9 +40,20 @@ def _api(fs: filesystem.Filesystem) -> render.Api:
     return render.Api(fs=fs)
 
 
-def test_render_template_not_found(api: render.Api) -> None:
-    with pytest.raises(jinja2.TemplateNotFound, match="kumquat"):
-        render.render(api, "src/kumquat", delete_created_files_on_error=False)
+@pytest.mark.parametrize(
+    "template_name,error_regex",
+    (
+        ("src/kumquat", r"kumquat"),
+        ("build/kumquat", r"kumquat.* not built yet"),
+    ),
+)
+def test_render_template_not_found(
+    template_name: str,
+    error_regex: str,
+    api: render.Api,
+) -> None:
+    with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
+        render.render(api, template_name, delete_created_files_on_error=False)
 
 
 @pytest.mark.parametrize("delete_created_files_on_error", (True, False))

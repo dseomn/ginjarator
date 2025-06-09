@@ -48,13 +48,12 @@ class _Loader(jinja2.BaseLoader):
     ) -> tuple[str, str | None, Callable[[], bool]]:
         del environment  # Unused.
         try:
-            return (
-                self._fs.read_text(template),
-                str(self._fs.resolve(template)),
-                lambda: False,
-            )
+            contents = self._fs.read_text(template)
         except FileNotFoundError as e:
             raise jinja2.TemplateNotFound(template) from e
+        if contents is None:
+            raise jinja2.TemplateNotFound(f"{template!r} is not built yet.")
+        return (contents, str(self._fs.resolve(template)), lambda: False)
 
 
 def render(

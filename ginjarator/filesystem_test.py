@@ -100,7 +100,6 @@ def test_filesystem_add_dependency(
     (
         "relative",
         "/absolute",
-        "build/not-built-yet",
     ),
 )
 def test_filesystem_read_text_not_allowed(
@@ -124,7 +123,7 @@ def test_filesystem_read_text_not_allowed(
         "build/already-built",
     ),
 )
-def test_filesystem_read_text(
+def test_filesystem_read_text_returns_contents(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -140,6 +139,17 @@ def test_filesystem_read_text(
     full_path.write_text(contents)
 
     assert fs.read_text(path) == contents
+    assert set(fs.dependencies) == {full_path}
+
+
+def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(tmp_path, build_paths=(pathlib.Path("build"),))
+    path = "build/not-built-yet"
+    full_path = tmp_path / path
+    full_path.parent.mkdir(parents=True)
+    full_path.write_text("stale contents from previous build")
+
+    assert fs.read_text(path) is None
     assert set(fs.dependencies) == {full_path}
 
 

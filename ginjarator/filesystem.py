@@ -127,12 +127,15 @@ class Filesystem:
         _check_allowed(full_path, self._readable_ever_paths)
         self._dependencies.add(full_path)
 
-    def read_text(self, path: pathlib.Path | str) -> str:
-        """Returns the contents of a file."""
+    def read_text(self, path: pathlib.Path | str) -> str | None:
+        """Returns the contents of a file, or None if it's not built yet."""
         full_path = self.resolve(path)
-        _check_allowed(full_path, self._readable_now_paths)
+        _check_allowed(full_path, self._readable_ever_paths)
         self._dependencies.add(full_path)
-        return full_path.read_text()
+        if _is_relative_to_any(full_path, self._readable_now_paths):
+            return full_path.read_text()
+        else:
+            return None
 
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
