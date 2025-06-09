@@ -20,15 +20,20 @@ import urllib.parse
 _INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
+def _is_relative_to_any(
+    path: pathlib.Path,
+    others: Collection[pathlib.Path],
+) -> bool:
+    return any(path.is_relative_to(other) for other in others)
+
+
 def _check_allowed(
     path: pathlib.Path,
     allowed_paths: Collection[pathlib.Path],
 ) -> None:
     # NOTE: This is meant to prevent mistakes that could make builds less
     # reliable. It is not meant to be, and isn't, secure.
-    if not any(
-        path.is_relative_to(allowed_path) for allowed_path in allowed_paths
-    ):
+    if not _is_relative_to_any(path, allowed_paths):
         raise ValueError(
             f"{str(path)!r} is not in allowed paths: {sorted(allowed_paths)}"
         )
@@ -41,20 +46,63 @@ class Filesystem:
         self,
         root: pathlib.Path = pathlib.Path("."),
         *,
-        read_allow: Collection[pathlib.Path],
-        write_allow: Collection[pathlib.Path],
+        source_paths: Collection[pathlib.Path] = (pathlib.Path("src"),),
+        build_paths: Collection[pathlib.Path] = (pathlib.Path("build"),),
+        build_done_paths: Collection[pathlib.Path] = (),
     ) -> None:
         """Initializer.
 
         Args:
             root: Top-level path of the project.
-            read_allow: Where files can be read from.
-            write_allow: Where files can be written to.
+            source_paths: Which files/directories are sources. Reading is always
+                allowed and writing is never allowed.
+            build_paths: Which files/directories are generated. Reading is only
+                allowed for paths in build_done_paths and writing is always
+                allowed.
+            build_done_paths: Which files/directories from build_paths have
+                already finished building.
         """
         self._root = root
-        self._read_allow = frozenset(map(self.resolve, read_allow))
-        self._write_allow = frozenset(map(self.resolve, write_allow))
-        self._any_allow = self._read_allow | self._write_allow
+        self._source_paths = frozenset(map(self.resolve, source_paths))
+        self._build_paths = frozenset(map(self.resolve, build_paths))
+        self._build_done_paths = frozenset(map(self.resolve, build_done_paths))
+
+        if any(
+            _is_relative_to_any(source_path, self._build_paths)
+            for source_path in self._source_paths
+        ) or any(
+            _is_relative_to_any(build_path, self._source_paths)
+            for build_path in self._build_paths
+        ):
+            raise ValueError("Source and build paths must not overlap.")
+
+        if not all(
+            _is_relative_to_any(build_done_path, self._build_paths)
+            for build_done_path in self._build_done_paths
+        ):
+            raise ValueError("Build done paths must all be under build paths.")
+
+        self._readable_ever_paths = frozenset(
+            (
+                self.resolve(_INTERNAL_DIR),
+                *self._source_paths,
+                *self._build_paths,
+            )
+        )
+        self._readable_now_paths = frozenset(
+            (
+                self.resolve(_INTERNAL_DIR),
+                *self._source_paths,
+                *self._build_done_paths,
+            )
+        )
+        self._writable_paths = frozenset(
+            (
+                self.resolve(_INTERNAL_DIR),
+                *self._build_paths,
+            )
+        )
+
         self._dependencies = set[pathlib.Path]()
         self._outputs = set[pathlib.Path]()
         self._created = set[pathlib.Path]()
@@ -76,26 +124,26 @@ class Filesystem:
     def add_dependency(self, path: pathlib.Path | str) -> None:
         """Adds a dependency."""
         full_path = self.resolve(path)
-        _check_allowed(full_path, self._any_allow)
+        _check_allowed(full_path, self._readable_ever_paths)
         self._dependencies.add(full_path)
 
     def read_text(self, path: pathlib.Path | str) -> str:
         """Returns the contents of a file."""
         full_path = self.resolve(path)
-        _check_allowed(full_path, self._read_allow)
+        _check_allowed(full_path, self._readable_now_paths)
         self._dependencies.add(full_path)
         return full_path.read_text()
 
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
         full_path = self.resolve(path)
-        _check_allowed(full_path, self._write_allow)
+        _check_allowed(full_path, self._writable_paths)
         self._outputs.add(full_path)
 
     def write_text(self, path: pathlib.Path | str, contents: str) -> None:
         """Writes a string to a file, preserving mtime if nothing changed."""
         full_path = self.resolve(path)
-        _check_allowed(full_path, self._write_allow)
+        _check_allowed(full_path, self._writable_paths)
         self._outputs.add(full_path)
         try:
             if contents == full_path.read_text():

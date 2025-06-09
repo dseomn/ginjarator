@@ -26,16 +26,13 @@ from ginjarator import render
 
 @pytest.fixture(name="root_path")
 def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
+    (tmp_path / "src").mkdir()
     return tmp_path
 
 
 @pytest.fixture(name="fs")
 def _fs(root_path: pathlib.Path) -> filesystem.Filesystem:
-    return filesystem.Filesystem(
-        root_path,
-        read_allow=(pathlib.Path("."),),
-        write_allow=(pathlib.Path("."),),
-    )
+    return filesystem.Filesystem(root_path)
 
 
 @pytest.fixture(name="api")
@@ -45,7 +42,7 @@ def _api(fs: filesystem.Filesystem) -> render.Api:
 
 def test_render_template_not_found(api: render.Api) -> None:
     with pytest.raises(jinja2.TemplateNotFound, match="kumquat"):
-        render.render(api, "kumquat", delete_created_files_on_error=False)
+        render.render(api, "src/kumquat", delete_created_files_on_error=False)
 
 
 @pytest.mark.parametrize("delete_created_files_on_error", (True, False))
@@ -54,9 +51,9 @@ def test_render_error(
     root_path: pathlib.Path,
     api: render.Api,
 ) -> None:
-    (root_path / "template.jinja").write_text(
+    (root_path / "src/template.jinja").write_text(
         """
-        {% do ginjarator.fs.write_text("output", "some text") %}
+        {% do ginjarator.fs.write_text("build/output", "some text") %}
         {{ this_variable_is_not_defined }}
         """
     )
@@ -64,35 +61,39 @@ def test_render_error(
     with pytest.raises(jinja2.UndefinedError):
         render.render(
             api,
-            "template.jinja",
+            "src/template.jinja",
             delete_created_files_on_error=delete_created_files_on_error,
         )
 
-    assert (root_path / "output").exists() == (
+    assert (root_path / "build/output").exists() == (
         not delete_created_files_on_error
     )
 
 
 def test_render(root_path: pathlib.Path, api: render.Api) -> None:
-    (root_path / "template.jinja").write_text(
+    (root_path / "src/template.jinja").write_text(
         """
-        {% call ginjarator.fs.write_text_macro("output") %}
+        {% call ginjarator.fs.write_text_macro("build/output") %}
             {{- 1 + 2 -}}
         {% endcall %}
         """
     )
     template_state_path = root_path / filesystem.template_state_path(
-        "template.jinja"
+        "src/template.jinja"
     )
 
-    render.render(api, "template.jinja", delete_created_files_on_error=False)
+    render.render(
+        api,
+        "src/template.jinja",
+        delete_created_files_on_error=False,
+    )
 
-    assert (root_path / "output").read_text() == "3"
+    assert (root_path / "build/output").read_text() == "3"
     assert json.loads(template_state_path.read_text()) == dict(
-        dependencies=[str(root_path / "template.jinja")],
+        dependencies=[str(root_path / "src/template.jinja")],
         outputs=sorted(
             (
-                str(root_path / "output"),
+                str(root_path / "build/output"),
                 str(template_state_path),
             )
         ),
