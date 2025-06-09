@@ -28,7 +28,7 @@ def _sleep_for_mtime() -> None:
     time.sleep(0.01)
 
 
-def test_resolve(tmp_path: pathlib.Path) -> None:
+def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(tmp_path, read_allow=(), write_allow=())
     assert fs.resolve("foo") == tmp_path / "foo"
 
@@ -40,7 +40,7 @@ def test_resolve(tmp_path: pathlib.Path) -> None:
         "/absolute",
     ),
 )
-def test_add_dependency_not_allowed(
+def test_filesystem_add_dependency_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -57,7 +57,7 @@ def test_add_dependency_not_allowed(
         "build/some-file",
     ),
 )
-def test_add_dependency(
+def test_filesystem_add_dependency(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -79,7 +79,7 @@ def test_add_dependency(
         "/absolute",
     ),
 )
-def test_read_text_not_allowed(
+def test_filesystem_read_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -89,7 +89,7 @@ def test_read_text_not_allowed(
         fs.read_text(path)
 
 
-def test_read_text(tmp_path: pathlib.Path) -> None:
+def test_filesystem_read_text(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(pathlib.Path("src"),),
@@ -112,7 +112,7 @@ def test_read_text(tmp_path: pathlib.Path) -> None:
         "/absolute",
     ),
 )
-def test_add_output_not_allowed(
+def test_filesystem_add_output_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -122,7 +122,7 @@ def test_add_output_not_allowed(
         fs.add_output(path)
 
 
-def test_add_output(tmp_path: pathlib.Path) -> None:
+def test_filesystem_add_output(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
@@ -141,7 +141,7 @@ def test_add_output(tmp_path: pathlib.Path) -> None:
         "/absolute",
     ),
 )
-def test_write_text_not_allowed(
+def test_filesystem_write_text_not_allowed(
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -151,7 +151,7 @@ def test_write_text_not_allowed(
         fs.write_text(path, "foo")
 
 
-def test_write_text_noop(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_noop(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
@@ -172,7 +172,7 @@ def test_write_text_noop(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
@@ -188,7 +188,7 @@ def test_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
@@ -209,7 +209,7 @@ def test_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
-def test_write_text_macro(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_macro(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
@@ -225,7 +225,7 @@ def test_write_text_macro(tmp_path: pathlib.Path) -> None:
     assert returned == contents
 
 
-def test_delete_created_files(tmp_path: pathlib.Path) -> None:
+def test_filesystem_delete_created_files(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         tmp_path,
         read_allow=(),
