@@ -104,6 +104,7 @@ class Filesystem:
 
         self._readable_ever_paths = frozenset(
             (
+                self.resolve(CONFIG_FILE),
                 self.resolve(_INTERNAL_DIR),
                 *self._source_paths,
                 *self._build_paths,
@@ -111,6 +112,7 @@ class Filesystem:
         )
         self._readable_now_paths = frozenset(
             (
+                self.resolve(CONFIG_FILE),
                 self.resolve(_INTERNAL_DIR),
                 *self._source_paths,
                 *self._build_done_paths,
