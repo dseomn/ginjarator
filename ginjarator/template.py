@@ -68,7 +68,11 @@ def _render(api: Api, template_name: str) -> None:
     template.render()
 
 
-def scan(template_name: str, *, root_path: pathlib.Path) -> None:
+def scan(
+    template_name: str,
+    *,
+    root_path: pathlib.Path = pathlib.Path("."),
+) -> None:
     """Scans a template for dependencies and outputs."""
     api = Api(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
@@ -91,7 +95,11 @@ def scan(template_name: str, *, root_path: pathlib.Path) -> None:
     )
 
 
-def render(template_name: str, *, root_path: pathlib.Path) -> None:
+def render(
+    template_name: str,
+    *,
+    root_path: pathlib.Path = pathlib.Path("."),
+) -> None:
     """Renders a template."""
     state = json.loads(
         (root_path / filesystem.template_state_path(template_name)).read_text()
