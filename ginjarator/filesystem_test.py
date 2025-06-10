@@ -14,6 +14,7 @@
 
 # pylint: disable=missing-module-docstring
 
+from collections.abc import Callable
 import pathlib
 import re
 import time
@@ -71,33 +72,63 @@ def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "relative",
-        "/absolute",
+        (lambda _: filesystem.ScanMode(), "relative"),
+        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "relative",),
+            ),
+            "relative",
+        ),
+        (
+            lambda _: filesystem.RenderMode(
+                dependencies=(pathlib.Path("/absolute"),),
+            ),
+            "/absolute",
+        ),
+        (lambda _: filesystem.RenderMode(), "src/some-file"),
     ),
 )
 def test_filesystem_add_dependency_not_allowed(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_dependency(path)
 
 
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "src/some-file",
-        "build/some-file",
+        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (lambda _: filesystem.ScanMode(), "build/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "src/some-file",),
+            ),
+            "src/some-file",
+        ),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "build/some-file",),
+            ),
+            "build/some-file",
+        ),
     ),
 )
-def test_filesystem_add_dependency(path: str, tmp_path: pathlib.Path) -> None:
+def test_filesystem_add_dependency(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
+    path: str,
+    tmp_path: pathlib.Path,
+) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
 
     fs.add_dependency(path)
 
@@ -105,20 +136,34 @@ def test_filesystem_add_dependency(path: str, tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "relative",
-        "/absolute",
+        (lambda _: filesystem.ScanMode(), "relative"),
+        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "relative",),
+            ),
+            "relative",
+        ),
+        (
+            lambda _: filesystem.RenderMode(
+                dependencies=(pathlib.Path("/absolute"),),
+            ),
+            "/absolute",
+        ),
+        (lambda _: filesystem.RenderMode(), "src/some-file"),
     ),
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_not_allowed(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
     path: str,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.read_text(path, defer_ok=defer_ok)
@@ -128,30 +173,39 @@ def test_filesystem_read_text_no_defer_exception(
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
 
     with pytest.raises(ValueError, match="deferring .* disabled"):
         fs.read_text("build/some-file", defer_ok=False)
 
 
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "src/some-file",
-        "build/already-built",
+        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "src/some-file",),
+            ),
+            "src/some-file",
+        ),
+        (
+            lambda root: filesystem.RenderMode(
+                dependencies=(root / "build/some-file",),
+            ),
+            "build/some-file",
+        ),
     ),
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_returns_contents(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
     path: str,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(
-        tmp_path,
-        build_done_paths=(pathlib.Path("build/already-built"),),
-    )
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
     contents = "the contents of the file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
@@ -163,7 +217,7 @@ def test_filesystem_read_text_returns_contents(
 
 def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
     path = "build/not-built-yet"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
@@ -182,55 +236,143 @@ def test_filesystem_read_config(tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "relative",
-        "/absolute",
-        "src/some-file",
+        (lambda _: filesystem.ScanMode(), "relative"),
+        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "relative",),
+            ),
+            "relative",
+        ),
+        (
+            lambda _: filesystem.RenderMode(
+                outputs=(pathlib.Path("/absolute"),),
+            ),
+            "/absolute",
+        ),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "src/some-file",),
+            ),
+            "src/some-file",
+        ),
+        (lambda _: filesystem.RenderMode(), "build/some-file"),
     ),
 )
 def test_filesystem_add_output_not_allowed(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_output(path)
 
 
-def test_filesystem_add_output(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
-
-    fs.add_output("build/some-file")
-
-    assert set(fs.outputs) == {tmp_path / "build/some-file"}
-
-
 @pytest.mark.parametrize(
-    "path",
+    "mode,path",
     (
-        "relative",
-        "/absolute",
-        "src/some-file",
+        (lambda _: filesystem.ScanMode(), "build/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "build/some-file",)
+            ),
+            "build/some-file",
+        ),
     ),
 )
-def test_filesystem_write_text_not_allowed(
+def test_filesystem_add_output(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
     path: str,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
+
+    fs.add_output(path)
+
+    assert set(fs.outputs) == {tmp_path / path}
+
+
+@pytest.mark.parametrize(
+    "mode,path",
+    (
+        (lambda _: filesystem.ScanMode(), "relative"),
+        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "relative",),
+            ),
+            "relative",
+        ),
+        (
+            lambda _: filesystem.RenderMode(
+                outputs=(pathlib.Path("/absolute"),),
+            ),
+            "/absolute",
+        ),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "src/some-file",),
+            ),
+            "src/some-file",
+        ),
+        (lambda _: filesystem.RenderMode(), "build/some-file"),
+    ),
+)
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_write_text_not_allowed(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
+    path: str,
+    defer_ok: bool,
+    tmp_path: pathlib.Path,
+) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.write_text(path, "foo")
+        fs.write_text(path, path, defer_ok=defer_ok)
 
 
-def test_filesystem_write_text_noop(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_no_defer_exception(
+    tmp_path: pathlib.Path,
+) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
+
+    with pytest.raises(ValueError, match="deferring .* disabled"):
+        fs.write_text("build/some-file", "foo", defer_ok=False)
+
+
+def test_filesystem_write_text_deferred(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
+    contents = "the contents of the file"
+    path = "build/some-file"
+    full_path = tmp_path / path
+
+    fs.write_text(path, contents, defer_ok=True)
+
+    assert not full_path.exists()
+    assert set(fs.outputs) == {full_path}
+
+
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_write_text_noop(
+    defer_ok: bool,
+    tmp_path: pathlib.Path,
+) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(
+        tmp_path,
+        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
+    )
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -239,29 +381,43 @@ def test_filesystem_write_text_noop(tmp_path: pathlib.Path) -> None:
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(path, contents)
+    fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime == original_mtime
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_writes_new_file(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_write_text_writes_new_file(
+    defer_ok: bool,
+    tmp_path: pathlib.Path,
+) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(
+        tmp_path,
+        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
+    )
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
 
-    fs.write_text(path, contents)
+    fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_updates_file(tmp_path: pathlib.Path) -> None:
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_write_text_updates_file(
+    defer_ok: bool,
+    tmp_path: pathlib.Path,
+) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(
+        tmp_path,
+        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
+    )
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
@@ -270,16 +426,32 @@ def test_filesystem_write_text_updates_file(tmp_path: pathlib.Path) -> None:
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(path, contents)
+    fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime
     assert set(fs.outputs) == {full_path}
 
 
-def test_filesystem_write_text_macro(tmp_path: pathlib.Path) -> None:
+def test_filesystem_write_text_macro_deferred(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path)
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
+    contents = "the contents of the file"
+    path = "build/some-file"
+    full_path = tmp_path / path
+
+    returned = fs.write_text_macro(path, caller=lambda: contents)
+
+    assert not full_path.exists()
+    assert returned == contents
+
+
+def test_filesystem_write_text_macro_writes(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(
+        tmp_path,
+        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
+    )
     contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path

@@ -31,16 +31,6 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
     return tmp_path
 
 
-@pytest.fixture(name="fs")
-def _fs(root_path: pathlib.Path) -> filesystem.Filesystem:
-    return filesystem.Filesystem(root_path)
-
-
-@pytest.fixture(name="api")
-def _api(fs: filesystem.Filesystem) -> render.Api:
-    return render.Api(fs=fs)
-
-
 @pytest.mark.parametrize(
     "template_name,error_regex",
     (
@@ -51,13 +41,22 @@ def _api(fs: filesystem.Filesystem) -> render.Api:
 def test_render_template_not_found(
     template_name: str,
     error_regex: str,
-    api: render.Api,
+    root_path: pathlib.Path,
 ) -> None:
+    api = render.Api(
+        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
+    )
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
         render.render(api, template_name)
 
 
-def test_render(root_path: pathlib.Path, api: render.Api) -> None:
+def test_render_scan(root_path: pathlib.Path) -> None:
+    template_state_path = root_path / filesystem.template_state_path(
+        "src/template.jinja"
+    )
+    api = render.Api(
+        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
+    )
     (root_path / "src/template.jinja").write_text(
         """
         {% call ginjarator.fs.write_text_macro("build/output") %}
@@ -65,8 +64,43 @@ def test_render(root_path: pathlib.Path, api: render.Api) -> None:
         {% endcall %}
         """
     )
+
+    render.render(api, "src/template.jinja")
+
+    assert not (root_path / "build/output").exists()
+    assert json.loads(template_state_path.read_text()) == dict(
+        dependencies=[str(root_path / "src/template.jinja")],
+        outputs=sorted(
+            (
+                str(root_path / "build/output"),
+                str(template_state_path),
+            )
+        ),
+    )
+
+
+def test_render_render(root_path: pathlib.Path) -> None:
     template_state_path = root_path / filesystem.template_state_path(
         "src/template.jinja"
+    )
+    api = render.Api(
+        fs=filesystem.Filesystem(
+            root_path,
+            mode=filesystem.RenderMode(
+                dependencies=(root_path / "src/template.jinja",),
+                outputs=(
+                    root_path / "build/output",
+                    template_state_path,
+                ),
+            ),
+        ),
+    )
+    (root_path / "src/template.jinja").write_text(
+        """
+        {% call ginjarator.fs.write_text_macro("build/output") %}
+            {{- 1 + 2 -}}
+        {% endcall %}
+        """
     )
 
     render.render(api, "src/template.jinja")
