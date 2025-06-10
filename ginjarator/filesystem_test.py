@@ -179,6 +179,18 @@ def test_filesystem_read_text_no_defer_exception(
         fs.read_text("build/some-file", defer_ok=False)
 
 
+def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
+    path = "build/not-built-yet"
+    full_path = tmp_path / path
+    full_path.parent.mkdir(parents=True)
+    full_path.write_text("stale contents from previous build")
+
+    assert fs.read_text(path, defer_ok=True) is None
+    assert set(fs.dependencies) == {full_path}
+
+
 @pytest.mark.parametrize(
     "mode,path",
     (
@@ -212,18 +224,6 @@ def test_filesystem_read_text_returns_contents(
     full_path.write_text(contents)
 
     assert fs.read_text(path, defer_ok=defer_ok) == contents
-    assert set(fs.dependencies) == {full_path}
-
-
-def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(tmp_path, mode=filesystem.ScanMode())
-    path = "build/not-built-yet"
-    full_path = tmp_path / path
-    full_path.parent.mkdir(parents=True)
-    full_path.write_text("stale contents from previous build")
-
-    assert fs.read_text(path, defer_ok=True) is None
     assert set(fs.dependencies) == {full_path}
 
 
