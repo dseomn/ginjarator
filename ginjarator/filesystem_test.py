@@ -147,14 +147,6 @@ def test_filesystem_read_text_returns_contents(
     assert set(fs.dependencies) == {full_path}
 
 
-def test_filesystem_read_config(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text("source_paths = ['foo']")
-    fs = filesystem.Filesystem(tmp_path)
-
-    assert tuple(fs.read_config().source_paths) == (pathlib.Path("foo"),)
-    assert set(fs.dependencies) == {tmp_path / "ginjarator.toml"}
-
-
 def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
     fs = filesystem.Filesystem(tmp_path)
@@ -165,6 +157,14 @@ def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
 
     assert fs.read_text(path) is None
     assert set(fs.dependencies) == {full_path}
+
+
+def test_filesystem_read_config(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("source_paths = ['foo']")
+    fs = filesystem.Filesystem(tmp_path)
+
+    assert tuple(fs.read_config().source_paths) == (pathlib.Path("foo"),)
+    assert set(fs.dependencies) == {tmp_path / "ginjarator.toml"}
 
 
 @pytest.mark.parametrize(
