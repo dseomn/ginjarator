@@ -21,7 +21,7 @@ import jinja2
 import pytest
 
 from ginjarator import filesystem
-from ginjarator import render
+from ginjarator import template
 
 
 @pytest.fixture(name="root_path")
@@ -44,7 +44,7 @@ def test_scan_template_not_found(
     root_path: pathlib.Path,
 ) -> None:
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
-        render.scan(template_name, root_path=root_path)
+        template.scan(template_name, root_path=root_path)
 
 
 def test_scan(root_path: pathlib.Path) -> None:
@@ -59,7 +59,7 @@ def test_scan(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.scan("src/template.jinja", root_path=root_path)
+    template.scan("src/template.jinja", root_path=root_path)
 
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
@@ -89,6 +89,6 @@ def test_render(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.render("src/template.jinja", root_path=root_path)
+    template.render("src/template.jinja", root_path=root_path)
 
     assert (root_path / "build/output").read_text() == "3"
