@@ -29,14 +29,13 @@ def _sleep_for_mtime() -> None:
 
 
 @pytest.mark.parametrize(
-    "config_contents,build_done_paths,error_regex",
+    "config_contents,error_regex",
     (
         (
             """
             source_paths = ["foo"]
             build_paths = ["foo"]
             """,
-            [],
             r"must not overlap",
         ),
         (
@@ -44,7 +43,6 @@ def _sleep_for_mtime() -> None:
             source_paths = ["foo/bar"]
             build_paths = ["foo"]
             """,
-            [],
             r"must not overlap",
         ),
         (
@@ -52,23 +50,18 @@ def _sleep_for_mtime() -> None:
             source_paths = ["foo"]
             build_paths = ["foo/bar"]
             """,
-            [],
             r"must not overlap",
         ),
     ),
 )
 def test_filesystem_invalid_paths(
     config_contents: str,
-    build_done_paths: list[str],
     error_regex: str,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / filesystem.CONFIG_FILE).write_text(config_contents)
     with pytest.raises(ValueError, match=error_regex):
-        filesystem.Filesystem(
-            tmp_path,
-            build_done_paths=tuple(map(pathlib.Path, build_done_paths)),
-        )
+        filesystem.Filesystem(tmp_path)
 
 
 def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
