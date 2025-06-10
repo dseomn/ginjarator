@@ -16,6 +16,7 @@
 from collections.abc import Callable, Collection
 import pathlib
 import tomllib
+from typing import Literal, overload
 import urllib.parse
 
 from ginjarator import config
@@ -141,21 +142,53 @@ class Filesystem:
         _check_allowed(full_path, self._readable_ever_paths)
         self._dependencies.add(full_path)
 
-    def read_text(self, path: pathlib.Path | str) -> str | None:
-        """Returns the contents of a file, or None if it's not built yet."""
+    @overload
+    def read_text(
+        self,
+        path: pathlib.Path | str,
+        *,
+        defer_ok: Literal[False],
+    ) -> str: ...
+    @overload
+    def read_text(
+        self,
+        path: pathlib.Path | str,
+        *,
+        defer_ok: bool = True,
+    ) -> str | None: ...
+    def read_text(
+        self,
+        path: pathlib.Path | str,
+        *,
+        defer_ok: bool = True,
+    ) -> str | None:
+        """Returns the contents of a file, or None if it might not be built yet.
+
+        Args:
+            path: Path to read.
+            defer_ok: When the file can't be read now but can be added as a
+                dependency to read in another pass: If True, add the dependency
+                and return None; if False, raise an exception.
+        """
         full_path = self.resolve(path)
         _check_allowed(full_path, self._readable_ever_paths)
+        readable_now = _is_relative_to_any(full_path, self._readable_now_paths)
+        if not readable_now and not defer_ok:
+            raise ValueError(
+                f"{str(path)!r} can't be read in this pass and deferring to a "
+                "later pass is disabled."
+            )
         self._dependencies.add(full_path)
-        if _is_relative_to_any(full_path, self._readable_now_paths):
-            return full_path.read_text()
-        else:
+        if not readable_now:
+            assert defer_ok
             return None
+        return full_path.read_text()
 
     def read_config(self) -> config.Config:
         """Returns the config."""
-        contents = self.read_text(CONFIG_FILE)
-        assert contents is not None  # CONFIG_FILE is always readable.
-        return config.Config.parse(tomllib.loads(contents))
+        return config.Config.parse(
+            tomllib.loads(self.read_text(CONFIG_FILE, defer_ok=False))
+        )
 
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""

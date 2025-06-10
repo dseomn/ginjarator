@@ -31,6 +31,12 @@ omit = [
   "**/*_test.py",
 ]
 
+[tool.coverage.report]
+exclude_also = [
+  # TODO: https://github.com/nedbat/coveragepy/issues/970 - Remove this.
+  '^ *@overload$',
+]
+
 [tool.isort]
 profile = "google"
 skip_gitignore = true

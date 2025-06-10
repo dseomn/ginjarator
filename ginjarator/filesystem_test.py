@@ -111,15 +111,27 @@ def test_filesystem_add_dependency(path: str, tmp_path: pathlib.Path) -> None:
         "/absolute",
     ),
 )
+@pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_not_allowed(
     path: str,
+    defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
     fs = filesystem.Filesystem(tmp_path)
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.read_text(path)
+        fs.read_text(path, defer_ok=defer_ok)
+
+
+def test_filesystem_read_text_no_defer_exception(
+    tmp_path: pathlib.Path,
+) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+    fs = filesystem.Filesystem(tmp_path)
+
+    with pytest.raises(ValueError, match="deferring .* disabled"):
+        fs.read_text("build/some-file", defer_ok=False)
 
 
 @pytest.mark.parametrize(
@@ -129,8 +141,10 @@ def test_filesystem_read_text_not_allowed(
         "build/already-built",
     ),
 )
+@pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_returns_contents(
     path: str,
+    defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
@@ -143,7 +157,7 @@ def test_filesystem_read_text_returns_contents(
     full_path.parent.mkdir(parents=True)
     full_path.write_text(contents)
 
-    assert fs.read_text(path) == contents
+    assert fs.read_text(path, defer_ok=defer_ok) == contents
     assert set(fs.dependencies) == {full_path}
 
 
@@ -155,7 +169,7 @@ def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
     full_path.parent.mkdir(parents=True)
     full_path.write_text("stale contents from previous build")
 
-    assert fs.read_text(path) is None
+    assert fs.read_text(path, defer_ok=True) is None
     assert set(fs.dependencies) == {full_path}
 
 
