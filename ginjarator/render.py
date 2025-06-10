@@ -56,7 +56,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.resolve(template)), lambda: False)
 
 
-def render(api: Api, template_name: str) -> None:
+def render(api: Api, template_name: str, *, scan: bool) -> None:
     """Renders a template."""
     environment = jinja2.Environment(
         extensions=("jinja2.ext.do",),
@@ -65,20 +65,21 @@ def render(api: Api, template_name: str) -> None:
     )
     environment.globals["ginjarator"] = api
     template = environment.get_template(template_name)
-    template_state_path = filesystem.template_state_path(template_name)
     template.render()
-    # Manually add the output so that api.fs.outputs has it before
-    # write_text() is called.
-    api.fs.add_output(template_state_path)
-    api.fs.write_text(
-        template_state_path,
-        json.dumps(
-            dict(
-                dependencies=sorted(map(str, api.fs.dependencies)),
-                outputs=sorted(map(str, api.fs.outputs)),
+    if scan:
+        template_state_path = filesystem.template_state_path(template_name)
+        # Manually add the output so that api.fs.outputs has it before
+        # write_text() is called.
+        api.fs.add_output(template_state_path)
+        api.fs.write_text(
+            template_state_path,
+            json.dumps(
+                dict(
+                    dependencies=sorted(map(str, api.fs.dependencies)),
+                    outputs=sorted(map(str, api.fs.outputs)),
+                ),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
             ),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        ),
-    )
+        )

@@ -47,7 +47,7 @@ def test_render_template_not_found(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
-        render.render(api, template_name)
+        render.render(api, template_name, scan=True)
 
 
 def test_render_scan(root_path: pathlib.Path) -> None:
@@ -65,7 +65,7 @@ def test_render_scan(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.render(api, "src/template.jinja")
+    render.render(api, "src/template.jinja", scan=True)
 
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
@@ -103,15 +103,6 @@ def test_render_render(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.render(api, "src/template.jinja")
+    render.render(api, "src/template.jinja", scan=False)
 
     assert (root_path / "build/output").read_text() == "3"
-    assert json.loads(template_state_path.read_text()) == dict(
-        dependencies=[str(root_path / "src/template.jinja")],
-        outputs=sorted(
-            (
-                str(root_path / "build/output"),
-                str(template_state_path),
-            )
-        ),
-    )
