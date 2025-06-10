@@ -14,7 +14,6 @@
 
 # pylint: disable=missing-module-docstring
 
-from collections.abc import Generator
 import json
 import pathlib
 
@@ -33,11 +32,8 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 @pytest.fixture(name="fs")
-def _fs(
-    root_path: pathlib.Path,
-) -> Generator[filesystem.Filesystem, None, None]:
-    with filesystem.Filesystem(root_path) as fs:
-        yield fs
+def _fs(root_path: pathlib.Path) -> filesystem.Filesystem:
+    return filesystem.Filesystem(root_path)
 
 
 @pytest.fixture(name="api")

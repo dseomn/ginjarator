@@ -16,7 +16,6 @@
 from collections.abc import Callable, Collection
 import pathlib
 import tomllib
-from typing import Any, Literal, Self
 import urllib.parse
 
 from ginjarator import config
@@ -121,23 +120,6 @@ class Filesystem:
 
         self._dependencies = set[pathlib.Path]()
         self._outputs = set[pathlib.Path]()
-        self._created = set[pathlib.Path]()
-
-    def __enter__(self) -> Self:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: Any,
-        traceback: Any,
-    ) -> Literal[False]:
-        if exc_type is not None:
-            # On error, delete any new files that were created. Ninja might not
-            # know about them yet, so its clean tool wouldn't remove them.
-            for full_path in self._created:
-                full_path.unlink(missing_ok=True)
-        return False
 
     @property
     def dependencies(self) -> Collection[pathlib.Path]:
@@ -190,13 +172,9 @@ class Filesystem:
             if contents == full_path.read_text():
                 return
         except FileNotFoundError:
-            new_file = True
-        else:
-            new_file = False
+            pass
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(contents)
-        if new_file:
-            self._created.add(full_path)
 
     def write_text_macro(
         self,
