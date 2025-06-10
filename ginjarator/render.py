@@ -16,6 +16,7 @@
 from collections.abc import Callable
 import dataclasses
 import json
+import pathlib
 from typing import override
 
 import jinja2
@@ -56,8 +57,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.resolve(template)), lambda: False)
 
 
-def render(api: Api, template_name: str, *, scan: bool) -> None:
-    """Renders a template."""
+def _render(api: Api, template_name: str) -> None:
     environment = jinja2.Environment(
         extensions=("jinja2.ext.do",),
         undefined=jinja2.StrictUndefined,
@@ -66,20 +66,43 @@ def render(api: Api, template_name: str, *, scan: bool) -> None:
     environment.globals["ginjarator"] = api
     template = environment.get_template(template_name)
     template.render()
-    if scan:
-        template_state_path = filesystem.template_state_path(template_name)
-        # Manually add the output so that api.fs.outputs has it before
-        # write_text() is called.
-        api.fs.add_output(template_state_path)
-        api.fs.write_text(
-            template_state_path,
-            json.dumps(
-                dict(
-                    dependencies=sorted(map(str, api.fs.dependencies)),
-                    outputs=sorted(map(str, api.fs.outputs)),
-                ),
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
+
+
+def scan(template_name: str, *, root_path: pathlib.Path) -> None:
+    """Scans a template for dependencies and outputs."""
+    api = Api(
+        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
+    )
+    _render(api, template_name)
+    template_state_path = root_path / filesystem.template_state_path(
+        template_name
+    )
+    template_state_path.parent.mkdir(parents=True, exist_ok=True)
+    template_state_path.write_text(
+        json.dumps(
+            dict(
+                dependencies=sorted(map(str, api.fs.dependencies)),
+                outputs=sorted(map(str, api.fs.outputs)),
             ),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
         )
+    )
+
+
+def render(template_name: str, *, root_path: pathlib.Path) -> None:
+    """Renders a template."""
+    state = json.loads(
+        (root_path / filesystem.template_state_path(template_name)).read_text()
+    )
+    api = Api(
+        fs=filesystem.Filesystem(
+            root_path,
+            mode=filesystem.RenderMode(
+                dependencies=tuple(map(pathlib.Path, state["dependencies"])),
+                outputs=tuple(map(pathlib.Path, state["outputs"])),
+            ),
+        ),
+    )
+    _render(api, template_name)

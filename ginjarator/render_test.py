@@ -38,24 +38,18 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
         ("build/kumquat", r"kumquat.* not built yet"),
     ),
 )
-def test_render_template_not_found(
+def test_scan_template_not_found(
     template_name: str,
     error_regex: str,
     root_path: pathlib.Path,
 ) -> None:
-    api = render.Api(
-        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
-    )
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
-        render.render(api, template_name, scan=True)
+        render.scan(template_name, root_path=root_path)
 
 
-def test_render_scan(root_path: pathlib.Path) -> None:
+def test_scan(root_path: pathlib.Path) -> None:
     template_state_path = root_path / filesystem.template_state_path(
         "src/template.jinja"
-    )
-    api = render.Api(
-        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     (root_path / "src/template.jinja").write_text(
         """
@@ -65,35 +59,27 @@ def test_render_scan(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.render(api, "src/template.jinja", scan=True)
+    render.scan("src/template.jinja", root_path=root_path)
 
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
         dependencies=[str(root_path / "src/template.jinja")],
-        outputs=sorted(
-            (
-                str(root_path / "build/output"),
-                str(template_state_path),
-            )
-        ),
+        outputs=[str(root_path / "build/output")],
     )
 
 
-def test_render_render(root_path: pathlib.Path) -> None:
+def test_render(root_path: pathlib.Path) -> None:
     template_state_path = root_path / filesystem.template_state_path(
         "src/template.jinja"
     )
-    api = render.Api(
-        fs=filesystem.Filesystem(
-            root_path,
-            mode=filesystem.RenderMode(
-                dependencies=(root_path / "src/template.jinja",),
-                outputs=(
-                    root_path / "build/output",
-                    template_state_path,
-                ),
-            ),
-        ),
+    template_state_path.parent.mkdir(parents=True, exist_ok=True)
+    template_state_path.write_text(
+        json.dumps(
+            dict(
+                dependencies=[str(root_path / "src/template.jinja")],
+                outputs=[str(root_path / "build/output")],
+            )
+        )
     )
     (root_path / "src/template.jinja").write_text(
         """
@@ -103,6 +89,6 @@ def test_render_render(root_path: pathlib.Path) -> None:
         """
     )
 
-    render.render(api, "src/template.jinja", scan=False)
+    render.render("src/template.jinja", root_path=root_path)
 
     assert (root_path / "build/output").read_text() == "3"
