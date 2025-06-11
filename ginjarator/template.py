@@ -78,9 +78,9 @@ def scan(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_name)
-    state_path = root_path / filesystem.template_state_path(template_name)
-    state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(
+    state_path = api.fs.resolve(filesystem.template_state_path(template_name))
+    api.fs.write_text(
+        state_path,
         json.dumps(
             dict(
                 dependencies=sorted(map(str, api.fs.dependencies)),
@@ -89,7 +89,8 @@ def scan(
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
-        )
+        ),
+        defer_ok=False,
     )
 
 
