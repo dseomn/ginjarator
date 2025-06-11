@@ -376,6 +376,34 @@ def test_remove_template_dependency() -> None:
     assert not pathlib.Path("build/out-2").exists()
 
 
+def test_remove_template_output() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out", "contents") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("src/foo.jinja").write_text("")
+
+    _run_ninja()
+
+    assert not pathlib.Path("build/out").exists()
+
+
 def test_template_dependency_changes_creator() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
