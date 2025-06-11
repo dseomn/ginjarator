@@ -63,6 +63,22 @@ def test_empty_project() -> None:
     _run_ninja()
 
 
+def test_empty_template() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text("")
+
+    _run_init()
+    _run_ninja()
+
+
 def test_simple() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
