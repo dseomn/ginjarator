@@ -17,10 +17,12 @@ from collections.abc import Callable
 import dataclasses
 import json
 import pathlib
+import textwrap
 from typing import override
 
 import jinja2
 
+from ginjarator import build
 from ginjarator import filesystem
 
 
@@ -94,6 +96,29 @@ def scan(
             sort_keys=True,
         ),
     )
+    internal_fs.write_text(
+        filesystem.template_depfile_path(template_name),
+        build.to_depfile({state_path: api.fs.dependencies}),
+    )
+    render_stamp_path = internal_fs.resolve(
+        filesystem.template_render_stamp_path(template_name)
+    )
+    internal_fs.write_text(
+        filesystem.template_dyndep_path(template_name),
+        textwrap.dedent(
+            f"""\
+            ninja_dyndep_version = 1
+            build $
+                    {build.to_ninja(render_stamp_path, escape_shell=False)} $
+                    | $
+                    {build.to_ninja(api.fs.outputs, escape_shell=False)} $
+                    : $
+                    dyndep $
+                    | $
+                    {build.to_ninja(api.fs.dependencies, escape_shell=False)}
+            """
+        ),
+    )
 
 
 def render(
@@ -119,3 +144,8 @@ def render(
         ),
     )
     _render(api, template_name)
+    internal_fs.write_text(
+        filesystem.template_render_stamp_path(template_name),
+        "",
+        preserve_mtime=False,
+    )

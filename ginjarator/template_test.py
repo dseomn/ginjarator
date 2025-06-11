@@ -66,6 +66,12 @@ def test_scan(root_path: pathlib.Path) -> None:
         dependencies=[str(root_path / "src/template.jinja")],
         outputs=[str(root_path / "build/output")],
     )
+    assert (
+        root_path / filesystem.template_depfile_path("src/template.jinja")
+    ).exists()
+    assert (
+        root_path / filesystem.template_dyndep_path("src/template.jinja")
+    ).exists()
 
 
 def test_render(root_path: pathlib.Path) -> None:
@@ -92,3 +98,6 @@ def test_render(root_path: pathlib.Path) -> None:
     template.render("src/template.jinja", root_path=root_path)
 
     assert (root_path / "build/output").read_text() == "3"
+    assert (
+        root_path / filesystem.template_render_stamp_path("src/template.jinja")
+    ).exists()

@@ -532,3 +532,21 @@ def test_template_state_path() -> None:
     assert filesystem.template_state_path("foo") == pathlib.Path(
         ".ginjarator/templates/foo.json"
     )
+
+
+def test_template_depfile_path() -> None:
+    assert filesystem.template_depfile_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.d"
+    )
+
+
+def test_template_dyndep_path() -> None:
+    assert filesystem.template_dyndep_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.dd"
+    )
+
+
+def test_template_render_stamp_path() -> None:
+    assert filesystem.template_render_stamp_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.render-stamp"
+    )

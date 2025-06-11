@@ -480,3 +480,20 @@ def internal_path(*components: str) -> pathlib.Path:
 def template_state_path(template_name: pathlib.Path | str) -> pathlib.Path:
     """Returns the path for template state."""
     return internal_path("templates", f"{template_name}.json")
+
+
+def template_depfile_path(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the path for a template's depfile."""
+    return internal_path("templates", f"{template_name}.d")
+
+
+def template_dyndep_path(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the path for a template's dyndep file."""
+    return internal_path("templates", f"{template_name}.dd")
+
+
+def template_render_stamp_path(
+    template_name: pathlib.Path | str,
+) -> pathlib.Path:
+    """Returns the path for a template's render stamp."""
+    return internal_path("templates", f"{template_name}.render-stamp")
