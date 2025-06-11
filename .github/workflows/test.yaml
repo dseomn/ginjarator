@@ -59,4 +59,5 @@ jobs:
         pipx install .
     - name: Test
       run: |
+        pip install pytest pytest-cov pytest-repeat pytest-xdist
         ./test-e2e
