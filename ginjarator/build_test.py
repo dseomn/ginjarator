@@ -15,6 +15,7 @@
 # pylint: disable=missing-module-docstring
 
 import pathlib
+import textwrap
 from typing import Any
 
 import pytest
@@ -49,3 +50,31 @@ def test_to_ninja(value: Any, escape_shell: bool, expected: str) -> None:
 def test_to_ninja_error(value: Any) -> None:
     with pytest.raises(NotImplementedError, match="Can't convert"):
         build.to_ninja(value, escape_shell=False)
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "foo bar",
+        "foo\x01bar",
+        "foo:bar",
+    ),
+)
+def test_to_depfile_error(path: str) -> None:
+    with pytest.raises(NotImplementedError, match="Unsupported characters"):
+        build.to_depfile({path: ("foo",)})
+
+
+def test_to_depfile() -> None:
+    assert build.to_depfile(
+        {
+            "t1": ("d1", "d2"),
+            "t2": ("d3",),
+        }
+    ) == textwrap.dedent(
+        """\
+        t1: d1
+        t1: d2
+        t2: d3
+        """
+    )

@@ -15,7 +15,7 @@
 
 import pathlib
 import shlex
-from typing import Any
+from typing import Any, Collection, Mapping
 
 
 def to_ninja(value: Any, *, escape_shell: bool) -> str:
@@ -48,3 +48,32 @@ def to_ninja(value: Any, *, escape_shell: bool) -> str:
             raise NotImplementedError(
                 f"Can't convert {value!r} to ninja syntax."
             )
+
+
+def _depfile_escape(path: str | pathlib.Path) -> str:
+    # The syntax does not seem to be well documented in any one place. The
+    # Target Rules section of
+    # https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html
+    # describes some of it, but not backslash handling. This code takes a
+    # conservative approach and just disallows potentially problematic
+    # characters.
+    if any(
+        c.isspace() or not c.isprintable() or c in ':;#%"\\' for c in str(path)
+    ):
+        raise NotImplementedError(
+            f"Unsupported characters in path {str(path)!r}."
+        )
+    return str(path)
+
+
+def to_depfile(
+    dependency_map: Mapping[str | pathlib.Path, Collection[str | pathlib.Path]],
+) -> str:
+    """Returns depfile contents given a map from target to dependencies."""
+    lines = []
+    for target, dependencies in dependency_map.items():
+        for dependency in dependencies:
+            lines.append(
+                f"{_depfile_escape(target)}: {_depfile_escape(dependency)}\n"
+            )
+    return "".join(lines)
