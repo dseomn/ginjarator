@@ -381,7 +381,7 @@ def test_filesystem_write_text_noop(
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(path, contents, defer_ok=defer_ok)
+    fs.write_text(path, contents, preserve_mtime=True, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime == original_mtime
@@ -408,8 +408,18 @@ def test_filesystem_write_text_writes_new_file(
     assert set(fs.outputs) == {full_path}
 
 
+@pytest.mark.parametrize(
+    "contents,preserve_mtime",
+    (
+        ("original contents of the file", False),
+        ("new contents of the file", False),
+        ("new contents of the file", True),
+    ),
+)
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_updates_file(
+    contents: str,
+    preserve_mtime: bool,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -418,7 +428,6 @@ def test_filesystem_write_text_updates_file(
         tmp_path,
         mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
     )
-    contents = "the contents of the file"
     path = "build/some-file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
@@ -426,7 +435,12 @@ def test_filesystem_write_text_updates_file(
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(path, contents, defer_ok=defer_ok)
+    fs.write_text(
+        path,
+        contents,
+        preserve_mtime=preserve_mtime,
+        defer_ok=defer_ok,
+    )
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime

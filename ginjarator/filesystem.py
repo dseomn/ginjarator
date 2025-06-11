@@ -380,16 +380,16 @@ class Filesystem:
         path: pathlib.Path | str,
         contents: str,
         *,
+        preserve_mtime: bool = True,
         defer_ok: bool = True,
     ) -> None:
         """Writes a string to a file, or adds the file as an output for later.
 
-        If the contents are unchanged, it doesn't update the mtime, to avoid
-        rebuilding downstream targets.
-
         Args:
             path: Path to write to.
             contents: String to write.
+            preserve_mtime: If True and the contents are unchanged, it doesn't
+                update the mtime, to avoid rebuilding downstream targets.
             defer_ok: When the file can't be written now but can be added as an
                 output to write in another pass: If True, add the output and
                 succeed silently; if False, raise an exception.
@@ -406,7 +406,7 @@ class Filesystem:
             assert defer_ok
             return
         try:
-            if contents == full_path.read_text():
+            if preserve_mtime and contents == full_path.read_text():
                 return
         except FileNotFoundError:
             pass
