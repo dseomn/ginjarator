@@ -23,6 +23,9 @@ test = [
   "pytest-cov",
 ]
 
+[project.scripts]
+ginjarator = "ginjarator.main:main"
+
 [tool.black]
 line-length = 80
 
