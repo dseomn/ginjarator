@@ -21,6 +21,7 @@ test = [
   "pylint",
   "pytest",
   "pytest-cov",
+  "pytest-repeat",
   "pytest-xdist",
 ]
 
@@ -62,6 +63,9 @@ addopts = """\
   --numprocesses=auto \
   --dist=worksteal \
   """
+markers = [
+  "e2e: end-to-end tests that use the installed program",
+]
 
 [tool.setuptools.packages.find]
 include = ["ginjarator", "ginjarator.*"]
