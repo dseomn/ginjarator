@@ -54,16 +54,18 @@ def _depfile_escape(path: str | pathlib.Path) -> str:
     # The syntax does not seem to be well documented in any one place. The
     # Target Rules section of
     # https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html
-    # describes some of it, but not backslash handling. This code takes a
-    # conservative approach and just disallows potentially problematic
-    # characters.
+    # describes some of it, but not backslash handling.
+    # https://github.com/ninja-build/ninja/blob/master/src/depfile_parser.in.cc
+    # shows how ninja parses it, but from the comments it looks like that's not
+    # the right syntax either and they might change it in the future. This code
+    # just disallows potentially problematic characters as much as possible.
     if any(
-        c.isspace() or not c.isprintable() or c in ':;#%"\\' for c in str(path)
+        c.isspace() or not c.isprintable() or c in ':;#"\\' for c in str(path)
     ):
         raise NotImplementedError(
             f"Unsupported characters in path {str(path)!r}."
         )
-    return str(path)
+    return str(path).replace("%", "\\%")
 
 
 def to_depfile(

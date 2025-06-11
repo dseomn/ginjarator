@@ -69,12 +69,12 @@ def test_to_depfile() -> None:
     assert build.to_depfile(
         {
             "t1": ("d1", "d2"),
-            "t2": ("d3",),
+            "t2": ("d%2f3",),
         }
     ) == textwrap.dedent(
         """\
         t1: d1
         t1: d2
-        t2: d3
+        t2: d\\%2f3
         """
     )
