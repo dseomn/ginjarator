@@ -15,7 +15,10 @@
 
 import pathlib
 import shlex
+import textwrap
 from typing import Any, Collection, Mapping
+
+from ginjarator import filesystem
 
 
 def to_ninja(value: Any, *, escape_shell: bool) -> str:
@@ -79,3 +82,118 @@ def to_depfile(
                 f"{_depfile_escape(target)}: {_depfile_escape(dependency)}\n"
             )
     return "".join(lines)
+
+
+def _template_ninja(
+    template_name: pathlib.Path,
+    *,
+    fs: filesystem.Filesystem,
+) -> str:
+    path = fs.resolve(template_name)
+    state_path = fs.resolve(filesystem.template_state_path(template_name))
+    depfile_path = fs.resolve(filesystem.template_depfile_path(template_name))
+    dyndep_path = fs.resolve(filesystem.template_dyndep_path(template_name))
+    render_stamp_path = fs.resolve(
+        filesystem.template_render_stamp_path(template_name)
+    )
+    scan_done_stamp_path = fs.resolve(
+        filesystem.internal_path("scan-done.stamp")
+    )
+    return textwrap.dedent(
+        f"""\
+        build $
+                {to_ninja(state_path, escape_shell=False)} $
+                | $
+                {to_ninja(depfile_path, escape_shell=False)} $
+                {to_ninja(dyndep_path, escape_shell=False)} $
+                : $
+                _ginjarator_scan $
+                {to_ninja(path, escape_shell=False)} $
+                || $
+                {to_ninja(filesystem.BUILD_FILE, escape_shell=False)}
+            depfile = {to_ninja(depfile_path, escape_shell=False)}
+            template = {to_ninja(template_name, escape_shell=True)}
+
+        build $
+                {to_ninja(render_stamp_path, escape_shell=False)} $
+                : $
+                _ginjarator_render $
+                {to_ninja(path, escape_shell=False)} $
+                | $
+                {to_ninja(state_path, escape_shell=False)} $
+                || $
+                {to_ninja(dyndep_path, escape_shell=False)} $
+                {to_ninja(scan_done_stamp_path, escape_shell=False)}
+            dyndep = {to_ninja(dyndep_path, escape_shell=False)}
+            template = {to_ninja(template_name, escape_shell=True)}
+        """
+    )
+
+
+def init(
+    *,
+    root_path: pathlib.Path = pathlib.Path("."),
+) -> None:
+    fs = filesystem.Filesystem(root_path)
+
+    scan_done_stamp_path = fs.resolve(
+        filesystem.internal_path("scan-done.stamp")
+    )
+    scan_done_dependencies = []
+
+    parts = []
+    parts.append(
+        textwrap.dedent(
+            """\
+            rule _ginjarator_init
+                command = ginjarator init
+                description = INIT
+                generator = true
+                restat = true
+
+            rule _ginjarator_scan
+                command = ginjarator scan $template
+                description = SCAN $template
+                restat = true
+
+            rule _ginjarator_render
+                command = ginjarator render $template
+                description = RENDER $template
+                restat = true
+
+            rule _ginjarator_touch
+                command = touch $out
+            """
+        )
+    )
+
+    for template_name in fs.read_config().templates:
+        parts.append(_template_ninja(template_name, fs=fs))
+        scan_done_dependencies.append(
+            fs.resolve(filesystem.template_state_path(template_name))
+        )
+
+    # It seems that build.ninja needs to be a relative path for ninja to reload
+    # it properly when it changes, so this hardcodes it rather than using
+    # add_output() first.
+    parts.append(
+        textwrap.dedent(
+            f"""\
+            build $
+                    {to_ninja(filesystem.BUILD_FILE, escape_shell=False)} $
+                    {to_ninja(sorted(fs.outputs), escape_shell=False)} $
+                    : $
+                    _ginjarator_init $
+                    {to_ninja(sorted(fs.dependencies), escape_shell=False)}
+
+            build $
+                    {to_ninja(scan_done_stamp_path, escape_shell=False)} $
+                    : $
+                    _ginjarator_touch $
+                    | $
+                    {to_ninja(scan_done_dependencies, escape_shell=False)}
+                description = STAMP done scanning
+            """
+        )
+    )
+    fs.write_text(filesystem.BUILD_FILE, "\n".join(parts))

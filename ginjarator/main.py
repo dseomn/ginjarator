@@ -15,7 +15,13 @@
 
 import argparse
 
+from ginjarator import build
 from ginjarator import template
+
+
+def _init(args: argparse.Namespace) -> None:
+    del args  # Unused.
+    build.init()
 
 
 def _scan(args: argparse.Namespace) -> None:
@@ -30,6 +36,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.set_defaults(subcommand=lambda args: parser.print_help())
     subparsers = parser.add_subparsers()
+
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Initialize ginjarator.",
+    )
+    init_parser.set_defaults(subcommand=_init)
 
     scan_parser = subparsers.add_parser(
         "scan",
