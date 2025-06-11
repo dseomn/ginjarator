@@ -17,6 +17,7 @@ from collections.abc import Generator, Sequence
 import contextlib
 import pathlib
 import subprocess
+import textwrap
 
 import pytest
 
@@ -60,3 +61,100 @@ def _run_ninja() -> None:
 def test_empty_project() -> None:
     _run_init()
     _run_ninja()
+
+
+def test_simple() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/out-1").read_text() == "contents-1"
+    assert pathlib.Path("build/out-2").read_text() == "contents-2"
+
+
+def test_template_dependencies() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/template-1.jinja",
+                "src/template-2.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/template-1.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+            """
+        )
+    )
+    pathlib.Path("src/template-2.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
+            {% if out_1 is none %}
+                {% do ginjarator.fs.add_output("build/out-2") %}
+            {% else %}
+                {% do ginjarator.fs.write_text(
+                    "build/out-2",
+                    out_1.replace("1", "2"),
+                ) %}
+            {% endif %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/out-1").read_text() == "contents-1"
+    assert pathlib.Path("build/out-2").read_text() == "contents-2"
+
+
+def test_conflicting_writes() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/template-1.jinja",
+                "src/template-2.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/template-1.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out", "contents-1") %}
+            """
+        )
+    )
+    pathlib.Path("src/template-2.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out", "contents-2") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run(("ninja",), expect_success=False)
