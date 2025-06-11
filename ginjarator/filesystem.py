@@ -130,15 +130,8 @@ class Mode(abc.ABC):
         """
 
 
-class ScanMode(Mode):
-    """Scan templates to find their dependencies and outputs.
-
-    * Any source or build path can be added as a dependency.
-    * Any source path can be read, which implicitly adds it as a dependency.
-    * Any build path can be added as an output.
-    * No writing is allowed from templates, though some internal state is
-      written by ginjarator itself.
-    """
+class InternalMode(Mode):
+    """Access by ginjarator itself, not templates."""
 
     @override
     def check_dependency(
@@ -151,6 +144,62 @@ class ScanMode(Mode):
             (
                 config_paths.resolve(CONFIG_FILE),
                 config_paths.resolve(_INTERNAL_DIR),
+                *config_paths.source_paths,
+            ),
+        )
+
+    @override
+    def check_read(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> bool:
+        self.check_dependency(config_paths, path)
+        return True
+
+    @override
+    def check_output(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> None:
+        _check_allowed(
+            path,
+            (
+                config_paths.resolve(BUILD_FILE),
+                config_paths.resolve(_INTERNAL_DIR),
+            ),
+        )
+
+    @override
+    def check_write(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> bool:
+        self.check_output(config_paths, path)
+        return True
+
+
+class ScanMode(Mode):
+    """Scan templates to find their dependencies and outputs.
+
+    * Any source or build path can be added as a dependency.
+    * Any source path can be read, which implicitly adds it as a dependency.
+    * Any build path can be added as an output.
+    * No writing is allowed.
+    """
+
+    @override
+    def check_dependency(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> None:
+        _check_allowed(
+            path,
+            (
+                config_paths.resolve(CONFIG_FILE),
                 *config_paths.source_paths,
                 *config_paths.build_paths,
             ),
@@ -167,7 +216,6 @@ class ScanMode(Mode):
             path,
             (
                 config_paths.resolve(CONFIG_FILE),
-                config_paths.resolve(_INTERNAL_DIR),
                 *config_paths.source_paths,
             ),
         )
@@ -178,14 +226,7 @@ class ScanMode(Mode):
         config_paths: _ConfigPaths,
         path: pathlib.Path,
     ) -> None:
-        _check_allowed(
-            path,
-            (
-                config_paths.resolve(BUILD_FILE),
-                config_paths.resolve(_INTERNAL_DIR),
-                *config_paths.build_paths,
-            ),
-        )
+        _check_allowed(path, config_paths.build_paths)
 
     @override
     def check_write(
@@ -194,13 +235,7 @@ class ScanMode(Mode):
         path: pathlib.Path,
     ) -> bool:
         self.check_output(config_paths, path)
-        return _is_relative_to_any(
-            path,
-            (
-                config_paths.resolve(BUILD_FILE),
-                config_paths.resolve(_INTERNAL_DIR),
-            ),
-        )
+        return False
 
 
 class RenderMode(Mode):
@@ -272,7 +307,7 @@ class Filesystem:
         self,
         root: pathlib.Path = pathlib.Path("."),
         *,
-        mode: Mode = ScanMode(),
+        mode: Mode = InternalMode(),
     ) -> None:
         """Initializer.
 

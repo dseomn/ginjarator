@@ -74,12 +74,15 @@ def scan(
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
     """Scans a template for dependencies and outputs."""
+    internal_fs = filesystem.Filesystem(root_path)
     api = Api(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_name)
-    state_path = api.fs.resolve(filesystem.template_state_path(template_name))
-    api.fs.write_text(
+    state_path = internal_fs.resolve(
+        filesystem.template_state_path(template_name)
+    )
+    internal_fs.write_text(
         state_path,
         json.dumps(
             dict(
@@ -90,7 +93,6 @@ def scan(
             indent=2,
             sort_keys=True,
         ),
-        defer_ok=False,
     )
 
 
@@ -100,8 +102,12 @@ def render(
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
     """Renders a template."""
+    internal_fs = filesystem.Filesystem(root_path)
     state = json.loads(
-        (root_path / filesystem.template_state_path(template_name)).read_text()
+        internal_fs.read_text(
+            filesystem.template_state_path(template_name),
+            defer_ok=False,
+        )
     )
     api = Api(
         fs=filesystem.Filesystem(

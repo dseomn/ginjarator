@@ -74,6 +74,8 @@ def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "relative"),
+        (lambda _: filesystem.InternalMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (
@@ -106,6 +108,7 @@ def test_filesystem_add_dependency_not_allowed(
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "build/some-file"),
         (
@@ -138,6 +141,8 @@ def test_filesystem_add_dependency(
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "relative"),
+        (lambda _: filesystem.InternalMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (
@@ -194,6 +199,7 @@ def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (
             lambda root: filesystem.RenderMode(
@@ -238,6 +244,10 @@ def test_filesystem_read_config(tmp_path: pathlib.Path) -> None:
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "relative"),
+        (lambda _: filesystem.InternalMode(), "/absolute"),
+        (lambda _: filesystem.InternalMode(), "src/some-file"),
+        (lambda _: filesystem.InternalMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
@@ -277,6 +287,7 @@ def test_filesystem_add_output_not_allowed(
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
         (lambda _: filesystem.ScanMode(), "build/some-file"),
         (
             lambda root: filesystem.RenderMode(
@@ -302,6 +313,10 @@ def test_filesystem_add_output(
 @pytest.mark.parametrize(
     "mode,path",
     (
+        (lambda _: filesystem.InternalMode(), "relative"),
+        (lambda _: filesystem.InternalMode(), "/absolute"),
+        (lambda _: filesystem.InternalMode(), "src/some-file"),
+        (lambda _: filesystem.InternalMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
@@ -363,18 +378,28 @@ def test_filesystem_write_text_deferred(tmp_path: pathlib.Path) -> None:
     assert set(fs.outputs) == {full_path}
 
 
+@pytest.mark.parametrize(
+    "mode,path",
+    (
+        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "build/some-file",),
+            ),
+            "build/some-file",
+        ),
+    ),
+)
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_noop(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
+    path: str,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(
-        tmp_path,
-        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
-    )
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
     contents = "the contents of the file"
-    path = "build/some-file"
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
     full_path.write_text(contents)
@@ -388,18 +413,28 @@ def test_filesystem_write_text_noop(
     assert set(fs.outputs) == {full_path}
 
 
+@pytest.mark.parametrize(
+    "mode,path",
+    (
+        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "build/some-file",),
+            ),
+            "build/some-file",
+        ),
+    ),
+)
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_writes_new_file(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
+    path: str,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(
-        tmp_path,
-        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
-    )
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
     contents = "the contents of the file"
-    path = "build/some-file"
     full_path = tmp_path / path
 
     fs.write_text(path, contents, defer_ok=defer_ok)
@@ -408,6 +443,18 @@ def test_filesystem_write_text_writes_new_file(
     assert set(fs.outputs) == {full_path}
 
 
+@pytest.mark.parametrize(
+    "mode,path",
+    (
+        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (
+            lambda root: filesystem.RenderMode(
+                outputs=(root / "build/some-file",),
+            ),
+            "build/some-file",
+        ),
+    ),
+)
 @pytest.mark.parametrize(
     "contents,preserve_mtime",
     (
@@ -418,17 +465,15 @@ def test_filesystem_write_text_writes_new_file(
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_updates_file(
+    mode: Callable[[pathlib.Path], filesystem.Mode],
+    path: str,
     contents: str,
     preserve_mtime: bool,
     defer_ok: bool,
     tmp_path: pathlib.Path,
 ) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
-    fs = filesystem.Filesystem(
-        tmp_path,
-        mode=filesystem.RenderMode(outputs=(tmp_path / "build/some-file",)),
-    )
-    path = "build/some-file"
+    fs = filesystem.Filesystem(tmp_path, mode=mode(tmp_path))
     full_path = tmp_path / path
     full_path.parent.mkdir(parents=True)
     full_path.write_text("original contents of the file")
