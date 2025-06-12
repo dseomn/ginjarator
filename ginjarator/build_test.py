@@ -90,4 +90,5 @@ def test_init(tmp_path: pathlib.Path) -> None:
     # This test is very minimal because checking the contents of the ninja file
     # would be pretty complicated, and it would probably just become a change
     # detector. End-to-end tests that actually run ninja are more useful here.
+    assert (tmp_path / ".ginjarator/.gitignore").exists()
     assert (tmp_path / "build.ninja").exists()
