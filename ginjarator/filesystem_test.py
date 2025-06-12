@@ -372,10 +372,11 @@ def test_filesystem_write_text_deferred(tmp_path: pathlib.Path) -> None:
     path = "build/some-file"
     full_path = tmp_path / path
 
-    fs.write_text(path, contents, defer_ok=True)
+    changed = fs.write_text(path, contents, defer_ok=True)
 
     assert not full_path.exists()
     assert set(fs.outputs) == {full_path}
+    assert not changed
 
 
 @pytest.mark.parametrize(
@@ -406,11 +407,17 @@ def test_filesystem_write_text_noop(
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(path, contents, preserve_mtime=True, defer_ok=defer_ok)
+    changed = fs.write_text(
+        path,
+        contents,
+        preserve_mtime=True,
+        defer_ok=defer_ok,
+    )
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime == original_mtime
     assert set(fs.outputs) == {full_path}
+    assert not changed
 
 
 @pytest.mark.parametrize(
@@ -437,10 +444,11 @@ def test_filesystem_write_text_writes_new_file(
     contents = "the contents of the file"
     full_path = tmp_path / path
 
-    fs.write_text(path, contents, defer_ok=defer_ok)
+    changed = fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert set(fs.outputs) == {full_path}
+    assert changed
 
 
 @pytest.mark.parametrize(
@@ -480,7 +488,7 @@ def test_filesystem_write_text_updates_file(
     original_mtime = full_path.stat().st_mtime
     _sleep_for_mtime()
 
-    fs.write_text(
+    changed = fs.write_text(
         path,
         contents,
         preserve_mtime=preserve_mtime,
@@ -490,6 +498,7 @@ def test_filesystem_write_text_updates_file(
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime
     assert set(fs.outputs) == {full_path}
+    assert changed
 
 
 def test_filesystem_write_text_macro_deferred(tmp_path: pathlib.Path) -> None:

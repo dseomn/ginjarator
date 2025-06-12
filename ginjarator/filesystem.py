@@ -417,7 +417,7 @@ class Filesystem:
         *,
         preserve_mtime: bool = True,
         defer_ok: bool = True,
-    ) -> None:
+    ) -> bool:
         """Writes a string to a file, or adds the file as an output for later.
 
         Args:
@@ -428,6 +428,9 @@ class Filesystem:
             defer_ok: When the file can't be written now but can be added as an
                 output to write in another pass: If True, add the output and
                 succeed silently; if False, raise an exception.
+
+        Returns:
+            Whether the file or its metadata was modified or not.
         """
         full_path = self.resolve(path)
         writable_now = self._mode.check_write(self._config_paths, full_path)
@@ -439,14 +442,15 @@ class Filesystem:
         self._outputs.add(full_path)
         if not writable_now:
             assert defer_ok
-            return
+            return False
         try:
             if preserve_mtime and contents == full_path.read_text():
-                return
+                return False
         except FileNotFoundError:
             pass
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(contents)
+        return True
 
     def write_text_macro(
         self,
