@@ -109,7 +109,7 @@ def _template_ninja(
                 {to_ninja(depfile_path, escape_shell=False)} $
                 {to_ninja(dyndep_path, escape_shell=False)} $
                 : $
-                _ginjarator_scan $
+                scan $
                 {to_ninja(path, escape_shell=False)} $
                 || $
                 {to_ninja(filesystem.BUILD_FILE, escape_shell=False)}
@@ -119,7 +119,7 @@ def _template_ninja(
         build $
                 {to_ninja(render_stamp_path, escape_shell=False)} $
                 : $
-                _ginjarator_render $
+                render $
                 {to_ninja(path, escape_shell=False)} $
                 | $
                 {to_ninja(state_path, escape_shell=False)} $
@@ -161,23 +161,23 @@ def init(
             f"""\
             ninja_required_version = {_NINJA_REQUIRED_VERSION}
 
-            rule _ginjarator_init
+            rule init
                 command = ginjarator init
                 description = INIT
                 generator = true
                 restat = true
 
-            rule _ginjarator_scan
+            rule scan
                 command = ginjarator scan $template
                 description = SCAN $template
                 restat = true
 
-            rule _ginjarator_render
+            rule render
                 command = ginjarator render $template
                 description = RENDER $template
                 restat = true
 
-            rule _ginjarator_touch
+            rule touch
                 command = touch $out
             """
         )
@@ -200,13 +200,13 @@ def init(
                     {to_ninja(filesystem.BUILD_FILE, escape_shell=False)} $
                     {to_ninja(sorted(fs.outputs), escape_shell=False)} $
                     : $
-                    _ginjarator_init $
+                    init $
                     {to_ninja(sorted(fs.dependencies), escape_shell=False)}
 
             build $
                     {to_ninja(scan_done_stamp_path, escape_shell=False)} $
                     : $
-                    _ginjarator_touch $
+                    touch $
                     | $
                     {to_ninja(scan_done_dependencies, escape_shell=False)}
                 description = STAMP done scanning
