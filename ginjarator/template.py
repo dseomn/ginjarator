@@ -120,13 +120,13 @@ def scan(
             f"""\
             ninja_dyndep_version = 1
             build $
-                    {build.to_ninja(render_stamp_path, escape_shell=False)} $
+                    {build.to_ninja(render_stamp_path)} $
                     | $
-                    {build.to_ninja(api.fs.outputs, escape_shell=False)} $
+                    {build.to_ninja(api.fs.outputs)} $
                     : $
                     dyndep $
                     | $
-                    {build.to_ninja(api.fs.dependencies, escape_shell=False)}
+                    {build.to_ninja(api.fs.dependencies)}
             """
         ),
     )
