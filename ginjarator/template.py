@@ -23,6 +23,7 @@ import jinja2
 
 from ginjarator import build
 from ginjarator import filesystem
+from ginjarator import python
 
 
 class Api:
@@ -30,6 +31,7 @@ class Api:
 
     Attributes:
         fs: Filesystem access.
+        py: API to use Python code.
     """
 
     def __init__(
@@ -43,6 +45,7 @@ class Api:
             fs: Filesystem access.
         """
         self.fs = fs
+        self.py = python.Api()
 
 
 class _Loader(jinja2.BaseLoader):
