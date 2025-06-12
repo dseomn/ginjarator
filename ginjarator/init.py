@@ -48,7 +48,7 @@ def _template_ninja(
                 scan $
                 {build.to_ninja(path)} $
                 || $
-                {build.to_ninja(filesystem.BUILD_FILE)}
+                {build.to_ninja(filesystem.BUILD_PATH)}
             depfile = {build.to_ninja(depfile_path)}
             template = {build.to_ninja(template_name, escape_shell=True)}
 
@@ -133,7 +133,7 @@ def init(
         textwrap.dedent(
             f"""\
             build $
-                    {build.to_ninja(filesystem.BUILD_FILE)} $
+                    {build.to_ninja(filesystem.BUILD_PATH)} $
                     {build.to_ninja(sorted(fs.outputs))} $
                     : $
                     init $
@@ -152,7 +152,7 @@ def init(
     subninjas_changed.append(fs.write_text(main_ninja_path, "\n".join(parts)))
 
     fs.write_text(
-        filesystem.BUILD_FILE,
+        filesystem.BUILD_PATH,
         textwrap.dedent(
             f"""\
             ninja_required_version = {_NINJA_REQUIRED_VERSION}

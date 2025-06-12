@@ -60,7 +60,7 @@ def test_filesystem_invalid_paths(
     error_regex: str,
     tmp_path: pathlib.Path,
 ) -> None:
-    (tmp_path / filesystem.CONFIG_FILE).write_text(config_contents)
+    (tmp_path / filesystem.CONFIG_PATH).write_text(config_contents)
     with pytest.raises(ValueError, match=error_regex):
         filesystem.Filesystem(tmp_path)
 

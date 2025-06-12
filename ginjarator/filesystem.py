@@ -23,8 +23,8 @@ import urllib.parse
 
 from ginjarator import config
 
-CONFIG_FILE = pathlib.Path("ginjarator.toml")
-BUILD_FILE = pathlib.Path("build.ninja")
+CONFIG_PATH = pathlib.Path("ginjarator.toml")
+BUILD_PATH = pathlib.Path("build.ninja")
 INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
@@ -146,7 +146,7 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_FILE),
+                config_paths.resolve(CONFIG_PATH),
                 config_paths.resolve(INTERNAL_DIR),
                 *config_paths.source_paths,
             ),
@@ -170,7 +170,7 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                config_paths.resolve(BUILD_FILE),
+                config_paths.resolve(BUILD_PATH),
                 config_paths.resolve(INTERNAL_DIR),
             ),
         )
@@ -201,7 +201,7 @@ class NinjaMode(Mode):
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_FILE),
+                config_paths.resolve(CONFIG_PATH),
                 *config_paths.source_paths,
             ),
         )
@@ -250,7 +250,7 @@ class ScanMode(Mode):
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_FILE),
+                config_paths.resolve(CONFIG_PATH),
                 *config_paths.source_paths,
                 *config_paths.build_paths,
             ),
@@ -266,7 +266,7 @@ class ScanMode(Mode):
         return _is_relative_to_any(
             path,
             (
-                config_paths.resolve(CONFIG_FILE),
+                config_paths.resolve(CONFIG_PATH),
                 *config_paths.source_paths,
             ),
         )
@@ -376,7 +376,7 @@ class Filesystem:
         # correctness. If that turns out to be wrong, self.add_dependency() can
         # be called after the path attributes are initialized below.
         config_ = config.Config.parse(
-            tomllib.loads(self.resolve(CONFIG_FILE).read_text())
+            tomllib.loads(self.resolve(CONFIG_PATH).read_text())
         )
         self._config_paths = _ConfigPaths(
             source_paths=frozenset(map(self.resolve, config_.source_paths)),
@@ -452,7 +452,7 @@ class Filesystem:
     def read_config(self) -> config.Config:
         """Returns the config."""
         return config.Config.parse(
-            tomllib.loads(self.read_text(CONFIG_FILE, defer_ok=False))
+            tomllib.loads(self.read_text(CONFIG_PATH, defer_ok=False))
         )
 
     def add_output(self, path: pathlib.Path | str) -> None:
