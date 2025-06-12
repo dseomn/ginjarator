@@ -72,6 +72,7 @@ class _Loader(jinja2.BaseLoader):
 
 def _render(api: Api, template_name: str) -> None:
     environment = jinja2.Environment(
+        keep_trailing_newline=True,
         extensions=("jinja2.ext.do",),
         undefined=jinja2.StrictUndefined,
         loader=_Loader(api.fs),
