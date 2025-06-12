@@ -47,6 +47,16 @@ def test_loader_template_not_found(
         template.scan(template_name, root_path=root_path)
 
 
+def test_ninja(root_path: pathlib.Path) -> None:
+    (root_path / "src/template.jinja").write_text("contents")
+    internal_fs = filesystem.Filesystem(root_path)
+
+    rendered = template.ninja("src/template.jinja", internal_fs=internal_fs)
+
+    assert rendered == "contents"
+    assert set(internal_fs.dependencies) == {root_path / "src/template.jinja"}
+
+
 def test_scan(root_path: pathlib.Path) -> None:
     template_state_path = root_path / filesystem.template_state_path(
         "src/template.jinja"

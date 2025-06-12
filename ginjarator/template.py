@@ -72,7 +72,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.resolve(template)), lambda: False)
 
 
-def _render(api: Api, template_name: str) -> None:
+def _render(api: Api, template_name: str) -> str:
     environment = jinja2.Environment(
         keep_trailing_newline=True,
         extensions=("jinja2.ext.do",),
@@ -81,7 +81,26 @@ def _render(api: Api, template_name: str) -> None:
     )
     environment.globals["ginjarator"] = api
     template = environment.get_template(template_name)
-    template.render()
+    return template.render()
+
+
+def ninja(
+    template_name: str,
+    *,
+    internal_fs: filesystem.Filesystem,
+) -> str:
+    """Returns custom ninja from the given template."""
+    api = Api(
+        fs=filesystem.Filesystem(
+            internal_fs.resolve("."),
+            mode=filesystem.NinjaMode(),
+        ),
+    )
+    contents = _render(api, template_name)
+    for dependency in api.fs.dependencies:
+        internal_fs.add_dependency(dependency)
+    # NinjaMode doesn't allow outputs, so no need to copy them.
+    return contents
 
 
 def scan(
