@@ -32,6 +32,7 @@ class Api:
     Attributes:
         fs: Filesystem access.
         py: API to use Python code.
+        to_ninja: Converts a value to ninja syntax.
     """
 
     def __init__(
@@ -46,6 +47,7 @@ class Api:
         """
         self.fs = fs
         self.py = python.Api()
+        self.to_ninja = build.to_ninja
 
 
 class _Loader(jinja2.BaseLoader):
