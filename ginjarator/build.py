@@ -155,6 +155,8 @@ def init(
     parts.append(
         textwrap.dedent(
             """\
+            ninja_required_version = 1.10
+
             rule _ginjarator_init
                 command = ginjarator init
                 description = INIT
