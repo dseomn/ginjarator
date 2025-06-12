@@ -43,29 +43,29 @@ def _template_ninja(
     return textwrap.dedent(
         f"""\
         build $
-                {to_ninja(state_path, escape_shell=False)} $
+                {to_ninja(state_path)} $
                 | $
-                {to_ninja(depfile_path, escape_shell=False)} $
-                {to_ninja(dyndep_path, escape_shell=False)} $
+                {to_ninja(depfile_path)} $
+                {to_ninja(dyndep_path)} $
                 : $
                 scan $
-                {to_ninja(path, escape_shell=False)} $
+                {to_ninja(path)} $
                 || $
-                {to_ninja(filesystem.BUILD_FILE, escape_shell=False)}
-            depfile = {to_ninja(depfile_path, escape_shell=False)}
+                {to_ninja(filesystem.BUILD_FILE)}
+            depfile = {to_ninja(depfile_path)}
             template = {to_ninja(template_name, escape_shell=True)}
 
         build $
-                {to_ninja(render_stamp_path, escape_shell=False)} $
+                {to_ninja(render_stamp_path)} $
                 : $
                 render $
-                {to_ninja(path, escape_shell=False)} $
+                {to_ninja(path)} $
                 | $
-                {to_ninja(state_path, escape_shell=False)} $
+                {to_ninja(state_path)} $
                 || $
-                {to_ninja(dyndep_path, escape_shell=False)} $
-                {to_ninja(scan_done_stamp_path, escape_shell=False)}
-            dyndep = {to_ninja(dyndep_path, escape_shell=False)}
+                {to_ninja(dyndep_path)} $
+                {to_ninja(scan_done_stamp_path)}
+            dyndep = {to_ninja(dyndep_path)}
             template = {to_ninja(template_name, escape_shell=True)}
         """
     )
@@ -136,18 +136,18 @@ def init(
         textwrap.dedent(
             f"""\
             build $
-                    {to_ninja(filesystem.BUILD_FILE, escape_shell=False)} $
-                    {to_ninja(sorted(fs.outputs), escape_shell=False)} $
+                    {to_ninja(filesystem.BUILD_FILE)} $
+                    {to_ninja(sorted(fs.outputs))} $
                     : $
                     init $
-                    {to_ninja(sorted(fs.dependencies), escape_shell=False)}
+                    {to_ninja(sorted(fs.dependencies))}
 
             build $
-                    {to_ninja(scan_done_stamp_path, escape_shell=False)} $
+                    {to_ninja(scan_done_stamp_path)} $
                     : $
                     touch $
                     | $
-                    {to_ninja(scan_done_dependencies, escape_shell=False)}
+                    {to_ninja(scan_done_dependencies)}
                 description = STAMP done scanning
             """
         )
@@ -159,7 +159,7 @@ def init(
         textwrap.dedent(
             f"""\
             ninja_required_version = {_NINJA_REQUIRED_VERSION}
-            subninja {to_ninja(main_ninja_path, escape_shell=False)}
+            subninja {to_ninja(main_ninja_path)}
             """
         ),
         preserve_mtime=not any(subninjas_changed),

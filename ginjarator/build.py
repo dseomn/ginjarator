@@ -18,7 +18,7 @@ import shlex
 from typing import Any, Collection, Mapping
 
 
-def to_ninja(value: Any, *, escape_shell: bool) -> str:
+def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
     """Returns a value in ninja's syntax."""
     # https://ninja-build.org/manual.html#ref_lexer
     match value:
