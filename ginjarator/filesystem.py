@@ -25,7 +25,7 @@ from ginjarator import config
 
 CONFIG_FILE = pathlib.Path("ginjarator.toml")
 BUILD_FILE = pathlib.Path("build.ninja")
-_INTERNAL_DIR = pathlib.Path(".ginjarator")
+INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
 def _is_relative_to_any(
@@ -143,7 +143,7 @@ class InternalMode(Mode):
             path,
             (
                 config_paths.resolve(CONFIG_FILE),
-                config_paths.resolve(_INTERNAL_DIR),
+                config_paths.resolve(INTERNAL_DIR),
                 *config_paths.source_paths,
             ),
         )
@@ -167,7 +167,7 @@ class InternalMode(Mode):
             path,
             (
                 config_paths.resolve(BUILD_FILE),
-                config_paths.resolve(_INTERNAL_DIR),
+                config_paths.resolve(INTERNAL_DIR),
             ),
         )
 
@@ -472,7 +472,7 @@ def internal_path(*components: str) -> pathlib.Path:
             other paths can be used as single components. However, "." and ".."
             are not escaped.
     """
-    return _INTERNAL_DIR.joinpath(
+    return INTERNAL_DIR.joinpath(
         *(urllib.parse.quote(component, safe="") for component in components)
     )
 
