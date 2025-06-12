@@ -111,6 +111,14 @@ def _main_ninja(
             fs.resolve(filesystem.template_state_path(template_name))
         )
 
+    depfile_path = fs.resolve(
+        filesystem.internal_path(f"{filesystem.BUILD_PATH}.d")
+    )
+    fs.write_text(
+        depfile_path,
+        build.to_depfile({filesystem.BUILD_PATH: fs.dependencies}),
+    )
+
     # It seems that build.ninja needs to be a relative path for ninja to reload
     # it properly when it changes, so this hardcodes it rather than using
     # add_output() first.
@@ -121,8 +129,8 @@ def _main_ninja(
                     {build.to_ninja(filesystem.BUILD_PATH)} $
                     {build.to_ninja(sorted(fs.outputs))} $
                     : $
-                    init $
-                    {build.to_ninja(sorted(fs.dependencies))}
+                    init
+                depfile = {build.to_ninja(depfile_path)}
 
             build $
                     {build.to_ninja(scan_done_stamp_path)} $
