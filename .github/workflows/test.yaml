@@ -38,7 +38,7 @@ jobs:
     - name: Test
       run: |
         ./test
-        ./test-e2e
+        ./test-e2e --count=16
   install-test:
     strategy:
       matrix:

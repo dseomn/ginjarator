@@ -18,4 +18,4 @@ set -euxo pipefail
 
 # e2e tests can be flaky because ninja builds things in parallel. To try to
 # catch flakes early, run each test multiple times.
-pytest -m 'e2e' --no-cov --count=10 "$@"
+pytest -m 'e2e' --no-cov --count=4 "$@"
