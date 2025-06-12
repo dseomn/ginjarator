@@ -14,7 +14,6 @@
 """Template scanning and rendering."""
 
 from collections.abc import Callable
-import dataclasses
 import json
 import pathlib
 import textwrap
@@ -26,7 +25,6 @@ from ginjarator import build
 from ginjarator import filesystem
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
 class Api:
     """API for use by templates.
 
@@ -34,7 +32,17 @@ class Api:
         fs: Filesystem access.
     """
 
-    fs: filesystem.Filesystem
+    def __init__(
+        self,
+        *,
+        fs: filesystem.Filesystem,
+    ) -> None:
+        """Initializer.
+
+        Args:
+            fs: Filesystem access.
+        """
+        self.fs = fs
 
 
 class _Loader(jinja2.BaseLoader):
