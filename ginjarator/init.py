@@ -21,9 +21,6 @@ from ginjarator import filesystem
 
 _NINJA_REQUIRED_VERSION = "1.10"
 
-# TODO: dseomn - Make this private.
-to_ninja = build.to_ninja
-
 
 def _template_ninja(
     template_name: pathlib.Path,
@@ -43,30 +40,30 @@ def _template_ninja(
     return textwrap.dedent(
         f"""\
         build $
-                {to_ninja(state_path)} $
+                {build.to_ninja(state_path)} $
                 | $
-                {to_ninja(depfile_path)} $
-                {to_ninja(dyndep_path)} $
+                {build.to_ninja(depfile_path)} $
+                {build.to_ninja(dyndep_path)} $
                 : $
                 scan $
-                {to_ninja(path)} $
+                {build.to_ninja(path)} $
                 || $
-                {to_ninja(filesystem.BUILD_FILE)}
-            depfile = {to_ninja(depfile_path)}
-            template = {to_ninja(template_name, escape_shell=True)}
+                {build.to_ninja(filesystem.BUILD_FILE)}
+            depfile = {build.to_ninja(depfile_path)}
+            template = {build.to_ninja(template_name, escape_shell=True)}
 
         build $
-                {to_ninja(render_stamp_path)} $
+                {build.to_ninja(render_stamp_path)} $
                 : $
                 render $
-                {to_ninja(path)} $
+                {build.to_ninja(path)} $
                 | $
-                {to_ninja(state_path)} $
+                {build.to_ninja(state_path)} $
                 || $
-                {to_ninja(dyndep_path)} $
-                {to_ninja(scan_done_stamp_path)}
-            dyndep = {to_ninja(dyndep_path)}
-            template = {to_ninja(template_name, escape_shell=True)}
+                {build.to_ninja(dyndep_path)} $
+                {build.to_ninja(scan_done_stamp_path)}
+            dyndep = {build.to_ninja(dyndep_path)}
+            template = {build.to_ninja(template_name, escape_shell=True)}
         """
     )
 
@@ -136,18 +133,18 @@ def init(
         textwrap.dedent(
             f"""\
             build $
-                    {to_ninja(filesystem.BUILD_FILE)} $
-                    {to_ninja(sorted(fs.outputs))} $
+                    {build.to_ninja(filesystem.BUILD_FILE)} $
+                    {build.to_ninja(sorted(fs.outputs))} $
                     : $
                     init $
-                    {to_ninja(sorted(fs.dependencies))}
+                    {build.to_ninja(sorted(fs.dependencies))}
 
             build $
-                    {to_ninja(scan_done_stamp_path)} $
+                    {build.to_ninja(scan_done_stamp_path)} $
                     : $
                     touch $
                     | $
-                    {to_ninja(scan_done_dependencies)}
+                    {build.to_ninja(scan_done_dependencies)}
                 description = STAMP done scanning
             """
         )
@@ -159,7 +156,7 @@ def init(
         textwrap.dedent(
             f"""\
             ninja_required_version = {_NINJA_REQUIRED_VERSION}
-            subninja {to_ninja(main_ninja_path)}
+            subninja {build.to_ninja(main_ninja_path)}
             """
         ),
         preserve_mtime=not any(subninjas_changed),
