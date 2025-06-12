@@ -38,7 +38,7 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
         ("build/kumquat", r"kumquat.* not built yet"),
     ),
 )
-def test_scan_template_not_found(
+def test_loader_template_not_found(
     template_name: str,
     error_regex: str,
     root_path: pathlib.Path,
