@@ -78,18 +78,3 @@ def test_to_depfile() -> None:
         t2: d\\%2f3
         """
     )
-
-
-def test_init(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text(
-        "templates = ['src/template.jinja']"
-    )
-
-    build.init(root_path=tmp_path)
-
-    # This test is very minimal because checking the contents of the ninja file
-    # would be pretty complicated, and it would probably just become a change
-    # detector. End-to-end tests that actually run ninja are more useful here.
-    assert (tmp_path / ".ginjarator/.gitignore").exists()
-    assert (tmp_path / ".ginjarator/main.ninja").exists()
-    assert (tmp_path / "build.ninja").exists()

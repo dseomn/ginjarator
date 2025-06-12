@@ -15,13 +15,13 @@
 
 import argparse
 
-from ginjarator import build
+from ginjarator import init
 from ginjarator import template
 
 
 def _init(args: argparse.Namespace) -> None:
     del args  # Unused.
-    build.init()
+    init.init()
 
 
 def _scan(args: argparse.Namespace) -> None:
