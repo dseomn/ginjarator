@@ -76,6 +76,9 @@ def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
     (
         (lambda _: filesystem.InternalMode(), "relative"),
         (lambda _: filesystem.InternalMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "relative"),
+        (lambda _: filesystem.NinjaMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (
@@ -109,6 +112,7 @@ def test_filesystem_add_dependency_not_allowed(
     "mode,path",
     (
         (lambda _: filesystem.InternalMode(), "src/some-file"),
+        (lambda _: filesystem.NinjaMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "build/some-file"),
         (
@@ -143,6 +147,9 @@ def test_filesystem_add_dependency(
     (
         (lambda _: filesystem.InternalMode(), "relative"),
         (lambda _: filesystem.InternalMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "relative"),
+        (lambda _: filesystem.NinjaMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (
@@ -200,6 +207,7 @@ def test_filesystem_read_text_returns_none(tmp_path: pathlib.Path) -> None:
     "mode,path",
     (
         (lambda _: filesystem.InternalMode(), "src/some-file"),
+        (lambda _: filesystem.NinjaMode(), "src/some-file"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (
             lambda root: filesystem.RenderMode(
@@ -248,6 +256,10 @@ def test_filesystem_read_config(tmp_path: pathlib.Path) -> None:
         (lambda _: filesystem.InternalMode(), "/absolute"),
         (lambda _: filesystem.InternalMode(), "src/some-file"),
         (lambda _: filesystem.InternalMode(), "build/some-file"),
+        (lambda _: filesystem.NinjaMode(), "relative"),
+        (lambda _: filesystem.NinjaMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "src/some-file"),
+        (lambda _: filesystem.NinjaMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),
@@ -317,6 +329,10 @@ def test_filesystem_add_output(
         (lambda _: filesystem.InternalMode(), "/absolute"),
         (lambda _: filesystem.InternalMode(), "src/some-file"),
         (lambda _: filesystem.InternalMode(), "build/some-file"),
+        (lambda _: filesystem.NinjaMode(), "relative"),
+        (lambda _: filesystem.NinjaMode(), "/absolute"),
+        (lambda _: filesystem.NinjaMode(), "src/some-file"),
+        (lambda _: filesystem.NinjaMode(), "build/some-file"),
         (lambda _: filesystem.ScanMode(), "relative"),
         (lambda _: filesystem.ScanMode(), "/absolute"),
         (lambda _: filesystem.ScanMode(), "src/some-file"),

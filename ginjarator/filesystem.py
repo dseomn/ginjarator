@@ -18,7 +18,7 @@ from collections.abc import Callable, Collection
 import dataclasses
 import pathlib
 import tomllib
-from typing import Literal, overload, override
+from typing import Literal, Never, overload, override
 import urllib.parse
 
 from ginjarator import config
@@ -45,6 +45,10 @@ def _check_allowed(
         raise ValueError(
             f"{str(path)!r} is not in allowed paths: {sorted(allowed_paths)}"
         )
+
+
+def _forbid_all(path: pathlib.Path) -> Never:
+    raise ValueError(f"{str(path)!r} is not in allowed paths: {()}")
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -179,6 +183,53 @@ class InternalMode(Mode):
     ) -> bool:
         self.check_output(config_paths, path)
         return True
+
+
+class NinjaMode(Mode):
+    """Render a template containing custom ninja code.
+
+    * Any source path can be added as a dependency or read.
+    * No outputs or writing are allowed.
+    """
+
+    @override
+    def check_dependency(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> None:
+        _check_allowed(
+            path,
+            (
+                config_paths.resolve(CONFIG_FILE),
+                *config_paths.source_paths,
+            ),
+        )
+
+    @override
+    def check_read(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> bool:
+        self.check_dependency(config_paths, path)
+        return True
+
+    @override
+    def check_output(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> None:
+        _forbid_all(path)
+
+    @override
+    def check_write(
+        self,
+        config_paths: _ConfigPaths,
+        path: pathlib.Path,
+    ) -> bool:
+        _forbid_all(path)
 
 
 class ScanMode(Mode):
