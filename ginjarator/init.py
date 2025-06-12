@@ -22,7 +22,7 @@ from ginjarator import filesystem
 _NINJA_REQUIRED_VERSION = "1.10"
 
 
-def _template_ninja(
+def _main_ninja_for_template(
     template_name: pathlib.Path,
     *,
     fs: filesystem.Filesystem,
@@ -106,7 +106,7 @@ def _main_ninja(
     )
 
     for template_name in fs.read_config().templates:
-        parts.append(_template_ninja(template_name, fs=fs))
+        parts.append(_main_ninja_for_template(template_name, fs=fs))
         scan_done_dependencies.append(
             fs.resolve(filesystem.template_state_path(template_name))
         )
