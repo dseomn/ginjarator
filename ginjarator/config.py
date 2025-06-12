@@ -28,11 +28,13 @@ class Config:
     Attributes:
         source_paths: Source files/directories.
         build_paths: Build files/directories.
-        templates: Templates to render.
+        ninja_templates: Templates to render to ninja code.
+        templates: Normal templates to render.
     """
 
     source_paths: Collection[pathlib.Path]
     build_paths: Collection[pathlib.Path]
+    ninja_templates: Collection[pathlib.Path]
     templates: Collection[pathlib.Path]
 
     @classmethod
@@ -41,6 +43,7 @@ class Config:
         if unexpected_keys := raw.keys() - {
             "source_paths",
             "build_paths",
+            "ninja_templates",
             "templates",
         }:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
@@ -50,6 +53,9 @@ class Config:
             ),
             build_paths=tuple(
                 map(pathlib.Path, raw.get("build_paths", ["build"]))
+            ),
+            ninja_templates=tuple(
+                map(pathlib.Path, raw.get("ninja_templates", []))
             ),
             templates=tuple(map(pathlib.Path, raw.get("templates", []))),
         )

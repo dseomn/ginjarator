@@ -35,6 +35,7 @@ def test_config_parse_error() -> None:
             config.Config(
                 source_paths=(pathlib.Path("src"),),
                 build_paths=(pathlib.Path("build"),),
+                ninja_templates=(),
                 templates=(),
             ),
         ),
@@ -42,11 +43,16 @@ def test_config_parse_error() -> None:
             dict(
                 source_paths=["src1", "src2"],
                 build_paths=["build1", "build2"],
+                ninja_templates=["n1.jinja", "n2.jinja"],
                 templates=["t1.jinja", "t2.jinja"],
             ),
             config.Config(
                 source_paths=(pathlib.Path("src1"), pathlib.Path("src2")),
                 build_paths=(pathlib.Path("build1"), pathlib.Path("build2")),
+                ninja_templates=(
+                    pathlib.Path("n1.jinja"),
+                    pathlib.Path("n2.jinja"),
+                ),
                 templates=(pathlib.Path("t1.jinja"), pathlib.Path("t2.jinja")),
             ),
         ),
