@@ -142,6 +142,7 @@ def init(
     *,
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
+    """Initializes a ginjarator project and generates its build files."""
     fs = filesystem.Filesystem(root_path)
     subninjas = []
     subninjas_changed = []
