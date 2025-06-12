@@ -20,6 +20,8 @@ from typing import Any, Collection, Mapping
 
 from ginjarator import filesystem
 
+_NINJA_REQUIRED_VERSION = "1.10"
+
 
 def to_ninja(value: Any, *, escape_shell: bool) -> str:
     """Returns a value in ninja's syntax."""
@@ -135,6 +137,8 @@ def init(
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
     fs = filesystem.Filesystem(root_path)
+    main_ninja_path = fs.resolve(filesystem.internal_path("main.ninja"))
+    subninjas_changed = []
 
     fs.write_text(
         filesystem.INTERNAL_DIR / ".gitignore",
@@ -154,8 +158,8 @@ def init(
     parts = []
     parts.append(
         textwrap.dedent(
-            """\
-            ninja_required_version = 1.10
+            f"""\
+            ninja_required_version = {_NINJA_REQUIRED_VERSION}
 
             rule _ginjarator_init
                 command = ginjarator init
@@ -188,6 +192,7 @@ def init(
     # It seems that build.ninja needs to be a relative path for ninja to reload
     # it properly when it changes, so this hardcodes it rather than using
     # add_output() first.
+    fs.add_output(main_ninja_path)
     parts.append(
         textwrap.dedent(
             f"""\
@@ -208,4 +213,15 @@ def init(
             """
         )
     )
-    fs.write_text(filesystem.BUILD_FILE, "\n".join(parts))
+    subninjas_changed.append(fs.write_text(main_ninja_path, "\n".join(parts)))
+
+    fs.write_text(
+        filesystem.BUILD_FILE,
+        textwrap.dedent(
+            f"""\
+            ninja_required_version = {_NINJA_REQUIRED_VERSION}
+            subninja {to_ninja(main_ninja_path, escape_shell=False)}
+            """
+        ),
+        preserve_mtime=not any(subninjas_changed),
+    )
