@@ -63,6 +63,146 @@ def test_empty_project() -> None:
     _run_ninja()
 
 
+def test_ninja_template() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    # Note that the rule name here is the same as one that ginjarator uses
+    # internally, but they're in different scopes.
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule init
+                command = printf contents > $out
+            build $
+                    {{ ginjarator.to_ninja(
+                        ginjarator.fs.resolve("build/out")
+                    ) }}: $
+                    init
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "contents"
+
+
+def test_add_ninja_template() -> None:
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf contents > $out
+            build $
+                    {{ ginjarator.to_ninja(
+                        ginjarator.fs.resolve("build/out")
+                    ) }}: $
+                    write
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "contents"
+
+
+def test_remove_ninja_template() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf contents > $out
+            build $
+                    {{ ginjarator.to_ninja(
+                        ginjarator.fs.resolve("build/out")
+                    ) }}: $
+                    write
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("ginjarator.toml").write_text("")
+    pathlib.Path("src/foo.jinja").unlink()
+
+    _run_ninja()
+
+    assert not pathlib.Path("build/out").exists()
+
+
+def test_update_ninja_template_dependency() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/included.jinja").write_text("")
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% include "src/included.jinja" %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("src/included.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf contents > $out
+            build $
+                    {{ ginjarator.to_ninja(
+                        ginjarator.fs.resolve("build/out")
+                    ) }}: $
+                    write
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "contents"
+
+
 def test_empty_template() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(

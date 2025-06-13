@@ -15,21 +15,32 @@
 # pylint: disable=missing-module-docstring
 
 import pathlib
+import textwrap
 
 from ginjarator import init
 
 
 def test_init(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text(
-        "templates = ['src/template.jinja']"
+        textwrap.dedent(
+            """\
+            ninja_templates = ["src/ninja.jinja"]
+            templates = ["src/template.jinja"]
+            """
+        )
     )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/ninja.jinja").write_text("")
 
     init.init(root_path=tmp_path)
 
-    # This test is very minimal because checking the contents of the ninja file
+    # This test is very minimal because checking the contents of the ninja files
     # would be pretty complicated, and it would probably just become a change
     # detector. End-to-end tests that actually run ninja are more useful here.
     assert (tmp_path / ".ginjarator/.gitignore").exists()
+    assert (
+        tmp_path / ".ginjarator/ninja_templates/src%2Fninja.jinja.ninja"
+    ).exists()
     assert (tmp_path / ".ginjarator/build.ninja.d").exists()
     assert (tmp_path / ".ginjarator/main.ninja").exists()
     assert (tmp_path / "build.ninja").exists()

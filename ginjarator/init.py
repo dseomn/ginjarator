@@ -18,6 +18,7 @@ import textwrap
 
 from ginjarator import build
 from ginjarator import filesystem
+from ginjarator import template
 
 _NINJA_REQUIRED_VERSION = "1.10"
 
@@ -164,6 +165,21 @@ def init(
             """
         ),
     )
+
+    for template_name in fs.read_config().ninja_templates:
+        template_ninja_path = fs.resolve(
+            filesystem.internal_path(
+                "ninja_templates",
+                f"{template_name}.ninja",
+            )
+        )
+        subninjas.append(template_ninja_path)
+        subninjas_changed.append(
+            fs.write_text(
+                template_ninja_path,
+                template.ninja(str(template_name), internal_fs=fs),
+            )
+        )
 
     # This has to be the last subninja, so that it can include the dependencies
     # and outputs added by previous subninjas.
