@@ -38,6 +38,7 @@ def test_init(tmp_path: pathlib.Path) -> None:
     # would be pretty complicated, and it would probably just become a change
     # detector. End-to-end tests that actually run ninja are more useful here.
     assert (tmp_path / ".ginjarator/.gitignore").exists()
+    assert (tmp_path / ".ginjarator/config/minimal.json").exists()
     assert (
         tmp_path / ".ginjarator/ninja_templates/src%2Fninja.jinja.ninja"
     ).exists()
