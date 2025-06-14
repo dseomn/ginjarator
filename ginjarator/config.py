@@ -16,35 +16,33 @@
 from collections.abc import Collection
 import dataclasses
 import pathlib
-from typing import Any, Self
+from typing import Any, override, Self
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
-class Config:
-    """Config.
+class Minimal:
+    """Minimal subset of config that's needed by (almost) everything.
+
+    Almost all templates (indirectly) depend on these fields and would need to
+    be rebuilt if they change. To avoid rebuilding all templates when other
+    fields change, these fields are split out from the main Config class.
 
     All paths are relative to the config file.
 
     Attributes:
         source_paths: Source files/directories.
         build_paths: Build files/directories.
-        ninja_templates: Templates to render to ninja code.
-        templates: Normal templates to render.
     """
 
     source_paths: Collection[pathlib.Path]
     build_paths: Collection[pathlib.Path]
-    ninja_templates: Collection[pathlib.Path]
-    templates: Collection[pathlib.Path]
 
     @classmethod
-    def parse(cls, raw: Any, /) -> Self:
-        """Returns the parsed config from toml data."""
+    def parse(cls, raw: Any, /, **kwargs: Any) -> Self:
+        """Returns the parsed config from data."""
         if unexpected_keys := raw.keys() - {
             "source_paths",
             "build_paths",
-            "ninja_templates",
-            "templates",
         }:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
@@ -54,8 +52,46 @@ class Config:
             build_paths=tuple(
                 map(pathlib.Path, raw.get("build_paths", ["build"]))
             ),
+            **kwargs,
+        )
+
+    def serialize_minimal(self) -> Any:
+        """Returns the Minimal config suitable for dumping as JSON.
+
+        To avoid triggering rebuilds when they're not needed, this should
+        normalize the data as much as possible. E.g., the order of source_paths
+        has no effect, so that's sorted.
+        """
+        return dict(
+            source_paths=sorted(set(map(str, self.source_paths))),
+            build_paths=sorted(set(map(str, self.build_paths))),
+        )
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class Config(Minimal):
+    """Config.
+
+    All paths are relative to the config file.
+
+    Attributes:
+        ninja_templates: Templates to render to ninja code.
+        templates: Normal templates to render.
+    """
+
+    ninja_templates: Collection[pathlib.Path]
+    templates: Collection[pathlib.Path]
+
+    @classmethod
+    @override
+    def parse(cls, raw: Any, /, **kwargs: Any) -> Self:
+        """Returns the parsed config from data."""
+        raw_copy = dict(raw)
+        return super().parse(
+            raw_copy,
             ninja_templates=tuple(
-                map(pathlib.Path, raw.get("ninja_templates", []))
+                map(pathlib.Path, raw_copy.pop("ninja_templates", []))
             ),
-            templates=tuple(map(pathlib.Path, raw.get("templates", []))),
+            templates=tuple(map(pathlib.Path, raw_copy.pop("templates", []))),
+            **kwargs,
         )

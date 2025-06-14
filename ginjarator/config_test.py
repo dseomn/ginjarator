@@ -22,13 +22,18 @@ import pytest
 from ginjarator import config
 
 
+def test_minimal_parse_error() -> None:
+    with pytest.raises(ValueError, match="templates"):
+        config.Minimal.parse(dict(templates=[]))
+
+
 def test_config_parse_error() -> None:
     with pytest.raises(ValueError, match="kumquat"):
         config.Config.parse(dict(kumquat="foo"))
 
 
 @pytest.mark.parametrize(
-    "raw,expected",
+    "config_raw,expected_config,expected_minimal_raw,expected_minimal",
     (
         (
             {},
@@ -37,6 +42,14 @@ def test_config_parse_error() -> None:
                 build_paths=(pathlib.Path("build"),),
                 ninja_templates=(),
                 templates=(),
+            ),
+            dict(
+                source_paths=["src"],
+                build_paths=["build"],
+            ),
+            config.Minimal(
+                source_paths=(pathlib.Path("src"),),
+                build_paths=(pathlib.Path("build"),),
             ),
         ),
         (
@@ -55,8 +68,27 @@ def test_config_parse_error() -> None:
                 ),
                 templates=(pathlib.Path("t1.jinja"), pathlib.Path("t2.jinja")),
             ),
+            dict(
+                source_paths=["src1", "src2"],
+                build_paths=["build1", "build2"],
+            ),
+            config.Minimal(
+                source_paths=(pathlib.Path("src1"), pathlib.Path("src2")),
+                build_paths=(pathlib.Path("build1"), pathlib.Path("build2")),
+            ),
         ),
     ),
 )
-def test_config_parse(raw: Any, expected: config.Config) -> None:
-    assert config.Config.parse(raw) == expected
+def test_config(
+    config_raw: Any,
+    expected_config: config.Config,
+    expected_minimal_raw: Any,
+    expected_minimal: config.Minimal,
+) -> None:
+    actual_config = config.Config.parse(config_raw)
+    actual_minimal_raw = actual_config.serialize_minimal()
+    actual_minimal = config.Minimal.parse(actual_minimal_raw)
+
+    assert actual_config == expected_config
+    assert actual_minimal_raw == expected_minimal_raw
+    assert actual_minimal == expected_minimal
