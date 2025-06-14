@@ -17,6 +17,7 @@ import pathlib
 import textwrap
 
 from ginjarator import build
+from ginjarator import config
 from ginjarator import filesystem
 from ginjarator import template
 
@@ -72,6 +73,7 @@ def _main_ninja_for_template(
 def _main_ninja(
     *,
     fs: filesystem.Filesystem,
+    config_: config.Config,
 ) -> str:
     scan_done_stamp_path = fs.resolve(
         filesystem.internal_path("scan-done.stamp")
@@ -106,7 +108,7 @@ def _main_ninja(
         )
     )
 
-    for template_name in fs.read_config().templates:
+    for template_name in config_.templates:
         parts.append(_main_ninja_for_template(template_name, fs=fs))
         scan_done_dependencies.append(
             fs.resolve(filesystem.template_state_path(template_name))
@@ -153,6 +155,7 @@ def init(
 ) -> None:
     """Initializes a ginjarator project and generates its build files."""
     fs = filesystem.Filesystem(root_path)
+    config_ = fs.read_config()
     subninjas = []
     subninjas_changed = []
 
@@ -166,7 +169,7 @@ def init(
         ),
     )
 
-    for template_name in fs.read_config().ninja_templates:
+    for template_name in config_.ninja_templates:
         template_ninja_path = fs.resolve(
             filesystem.internal_path(
                 "ninja_templates",
@@ -186,7 +189,9 @@ def init(
     main_ninja_path = fs.resolve(filesystem.internal_path("main.ninja"))
     fs.add_output(main_ninja_path)
     subninjas.append(main_ninja_path)
-    subninjas_changed.append(fs.write_text(main_ninja_path, _main_ninja(fs=fs)))
+    subninjas_changed.append(
+        fs.write_text(main_ninja_path, _main_ninja(fs=fs, config_=config_))
+    )
 
     fs.write_text(
         filesystem.BUILD_PATH,
