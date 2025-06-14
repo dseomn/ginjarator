@@ -18,7 +18,7 @@ from collections.abc import Callable, Collection
 import dataclasses
 import pathlib
 import tomllib
-from typing import Literal, Never, overload, override
+from typing import Any, Literal, Never, overload, override
 import urllib.parse
 
 from ginjarator import config
@@ -77,24 +77,37 @@ class _ConfigPaths:
 class Mode(abc.ABC):
     """How the filesystem can be accessed."""
 
-    @abc.abstractmethod
-    def check_dependency(
+    def __init__(self) -> None:
+        self._configured = False
+        self._config_paths: _ConfigPaths | None = None
+
+    def configure(
         self,
+        *,
         config_paths: _ConfigPaths,
-        path: pathlib.Path,
     ) -> None:
+        """Configures the mode for use by a Filesystem."""
+        if self._configured:
+            raise ValueError("Already configured.")
+        self._configured = True
+        self._config_paths = config_paths
+
+    @property
+    def config_paths(self) -> _ConfigPaths:
+        """Config paths."""
+        if self._config_paths is None:
+            raise ValueError("Not configured yet.")
+        return self._config_paths
+
+    @abc.abstractmethod
+    def check_dependency(self, path: pathlib.Path) -> None:
         """Raises an exception if path can't be added as a dependency."""
 
     @abc.abstractmethod
-    def check_read(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
+    def check_read(self, path: pathlib.Path) -> bool:
         """Checks if the path can be read.
 
         Args:
-            config_paths: Config paths.
             path: Path to check.
 
         Returns:
@@ -106,23 +119,14 @@ class Mode(abc.ABC):
         """
 
     @abc.abstractmethod
-    def check_output(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_output(self, path: pathlib.Path) -> None:
         """Raises an exception if path can't be added as an output."""
 
     @abc.abstractmethod
-    def check_write(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
+    def check_write(self, path: pathlib.Path) -> bool:
         """Checks if the path can be written.
 
         Args:
-            config_paths: Config paths.
             path: Path to check.
 
         Returns:
@@ -138,50 +142,34 @@ class InternalMode(Mode):
     """Access by ginjarator itself, not templates."""
 
     @override
-    def check_dependency(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_dependency(self, path: pathlib.Path) -> None:
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_PATH),
-                config_paths.resolve(INTERNAL_DIR),
-                *config_paths.source_paths,
+                self.config_paths.resolve(CONFIG_PATH),
+                self.config_paths.resolve(INTERNAL_DIR),
+                *self.config_paths.source_paths,
             ),
         )
 
     @override
-    def check_read(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_dependency(config_paths, path)
+    def check_read(self, path: pathlib.Path) -> bool:
+        self.check_dependency(path)
         return True
 
     @override
-    def check_output(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_output(self, path: pathlib.Path) -> None:
         _check_allowed(
             path,
             (
-                config_paths.resolve(BUILD_PATH),
-                config_paths.resolve(INTERNAL_DIR),
+                self.config_paths.resolve(BUILD_PATH),
+                self.config_paths.resolve(INTERNAL_DIR),
             ),
         )
 
     @override
-    def check_write(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_output(config_paths, path)
+    def check_write(self, path: pathlib.Path) -> bool:
+        self.check_output(path)
         return True
 
 
@@ -193,42 +181,26 @@ class NinjaMode(Mode):
     """
 
     @override
-    def check_dependency(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_dependency(self, path: pathlib.Path) -> None:
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_PATH),
-                *config_paths.source_paths,
+                self.config_paths.resolve(CONFIG_PATH),
+                *self.config_paths.source_paths,
             ),
         )
 
     @override
-    def check_read(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_dependency(config_paths, path)
+    def check_read(self, path: pathlib.Path) -> bool:
+        self.check_dependency(path)
         return True
 
     @override
-    def check_output(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_output(self, path: pathlib.Path) -> None:
         _forbid_all(path)
 
     @override
-    def check_write(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
+    def check_write(self, path: pathlib.Path) -> bool:
         _forbid_all(path)
 
 
@@ -242,50 +214,34 @@ class ScanMode(Mode):
     """
 
     @override
-    def check_dependency(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
+    def check_dependency(self, path: pathlib.Path) -> None:
         _check_allowed(
             path,
             (
-                config_paths.resolve(CONFIG_PATH),
-                *config_paths.source_paths,
-                *config_paths.build_paths,
+                self.config_paths.resolve(CONFIG_PATH),
+                *self.config_paths.source_paths,
+                *self.config_paths.build_paths,
             ),
         )
 
     @override
-    def check_read(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_dependency(config_paths, path)
+    def check_read(self, path: pathlib.Path) -> bool:
+        self.check_dependency(path)
         return _is_relative_to_any(
             path,
             (
-                config_paths.resolve(CONFIG_PATH),
-                *config_paths.source_paths,
+                self.config_paths.resolve(CONFIG_PATH),
+                *self.config_paths.source_paths,
             ),
         )
 
     @override
-    def check_output(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
-        _check_allowed(path, config_paths.build_paths)
+    def check_output(self, path: pathlib.Path) -> None:
+        _check_allowed(path, self.config_paths.build_paths)
 
     @override
-    def check_write(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_output(config_paths, path)
+    def check_write(self, path: pathlib.Path) -> bool:
+        self.check_output(path)
         return False
 
 
@@ -310,44 +266,34 @@ class RenderMode(Mode):
             dependencies: Dependencies from the scan pass.
             outputs: Outputs from the scan pass.
         """
+        super().__init__()
         self._dependencies = dependencies
         self._outputs = outputs
         self._scan_mode = ScanMode()
 
     @override
-    def check_dependency(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
-        self._scan_mode.check_dependency(config_paths, path)
+    def configure(self, *args: Any, **kwargs: Any) -> None:
+        super().configure(*args, **kwargs)
+        self._scan_mode.configure(*args, **kwargs)
+
+    @override
+    def check_dependency(self, path: pathlib.Path) -> None:
+        self._scan_mode.check_dependency(path)
         _check_allowed(path, self._dependencies)
 
     @override
-    def check_read(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_dependency(config_paths, path)
+    def check_read(self, path: pathlib.Path) -> bool:
+        self.check_dependency(path)
         return True
 
     @override
-    def check_output(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> None:
-        self._scan_mode.check_output(config_paths, path)
+    def check_output(self, path: pathlib.Path) -> None:
+        self._scan_mode.check_output(path)
         _check_allowed(path, self._outputs)
 
     @override
-    def check_write(
-        self,
-        config_paths: _ConfigPaths,
-        path: pathlib.Path,
-    ) -> bool:
-        self.check_output(config_paths, path)
+    def check_write(self, path: pathlib.Path) -> bool:
+        self.check_output(path)
         return True
 
 
@@ -358,16 +304,17 @@ class Filesystem:
         self,
         root: pathlib.Path = pathlib.Path("."),
         *,
-        mode: Mode = InternalMode(),
+        mode: Mode | None = None,
     ) -> None:
         """Initializer.
 
         Args:
             root: Top-level path of the project.
-            mode: How the filesystem can be accessed.
+            mode: How the filesystem can be accessed, or None to use
+                InternalMode.
         """
         self._root = root
-        self._mode = mode
+        self._mode = InternalMode() if mode is None else mode
 
         # This has to use pathlib.Path.read_text() instead of self.read_text()
         # because of the circular dependency otherwise. In theory, every
@@ -378,10 +325,12 @@ class Filesystem:
         config_ = config.Config.parse(
             tomllib.loads(self.resolve(CONFIG_PATH).read_text())
         )
-        self._config_paths = _ConfigPaths(
-            source_paths=frozenset(map(self.resolve, config_.source_paths)),
-            build_paths=frozenset(map(self.resolve, config_.build_paths)),
-            resolve=self.resolve,
+        self._mode.configure(
+            config_paths=_ConfigPaths(
+                source_paths=frozenset(map(self.resolve, config_.source_paths)),
+                build_paths=frozenset(map(self.resolve, config_.build_paths)),
+                resolve=self.resolve,
+            ),
         )
         del config_
 
@@ -405,7 +354,7 @@ class Filesystem:
     def add_dependency(self, path: pathlib.Path | str) -> None:
         """Adds a dependency."""
         full_path = self.resolve(path)
-        self._mode.check_dependency(self._config_paths, full_path)
+        self._mode.check_dependency(full_path)
         self._dependencies.add(full_path)
 
     @overload
@@ -437,7 +386,7 @@ class Filesystem:
                 and return None; if False, raise an exception.
         """
         full_path = self.resolve(path)
-        readable_now = self._mode.check_read(self._config_paths, full_path)
+        readable_now = self._mode.check_read(full_path)
         if not readable_now and not defer_ok:
             raise ValueError(
                 f"{str(path)!r} can't be read in this pass and deferring to a "
@@ -458,7 +407,7 @@ class Filesystem:
     def add_output(self, path: pathlib.Path | str) -> None:
         """Adds an output."""
         full_path = self.resolve(path)
-        self._mode.check_output(self._config_paths, full_path)
+        self._mode.check_output(full_path)
         self._outputs.add(full_path)
 
     def write_text(
@@ -484,7 +433,7 @@ class Filesystem:
             Whether the file or its metadata was modified or not.
         """
         full_path = self.resolve(path)
-        writable_now = self._mode.check_write(self._config_paths, full_path)
+        writable_now = self._mode.check_write(full_path)
         if not writable_now and not defer_ok:
             raise ValueError(
                 f"{str(path)!r} can't be written in this pass and deferring "

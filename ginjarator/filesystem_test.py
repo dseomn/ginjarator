@@ -29,6 +29,24 @@ def _sleep_for_mtime() -> None:
     time.sleep(0.01)
 
 
+def test_mode_configure_twice() -> None:
+    mode = filesystem.InternalMode()
+    config_paths = filesystem._ConfigPaths(  # pylint: disable=protected-access
+        source_paths=(),
+        build_paths=(),
+        resolve=pathlib.Path,
+    )
+    mode.configure(config_paths=config_paths)
+
+    with pytest.raises(ValueError, match="Already configured"):
+        mode.configure(config_paths=config_paths)
+
+
+def test_mode_no_configure() -> None:
+    with pytest.raises(ValueError, match="Not configured"):
+        filesystem.InternalMode().check_dependency(pathlib.Path("foo"))
+
+
 @pytest.mark.parametrize(
     "config_contents,error_regex",
     (
