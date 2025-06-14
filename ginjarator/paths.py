@@ -17,7 +17,7 @@ import pathlib
 import urllib.parse
 
 CONFIG_PATH = pathlib.Path("ginjarator.toml")
-BUILD_PATH = pathlib.Path("build.ninja")
+
 INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
@@ -34,6 +34,7 @@ def internal_path(*components: str) -> pathlib.Path:
     )
 
 
+BUILD_PATH = pathlib.Path("build.ninja")
 MINIMAL_CONFIG_PATH = internal_path("config", "minimal.json")
 
 
