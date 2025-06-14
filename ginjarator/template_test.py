@@ -22,6 +22,7 @@ import jinja2
 import pytest
 
 from ginjarator import filesystem
+from ginjarator import paths
 from ginjarator import template
 
 
@@ -76,7 +77,7 @@ def test_ninja(root_path: pathlib.Path) -> None:
 
 
 def test_scan(root_path: pathlib.Path) -> None:
-    template_state_path = root_path / filesystem.template_state_path(
+    template_state_path = root_path / paths.template_state_path(
         "src/template.jinja"
     )
     (root_path / "src/template.jinja").write_text(
@@ -98,15 +99,15 @@ def test_scan(root_path: pathlib.Path) -> None:
         outputs=[str(root_path / "build/output")],
     )
     assert (
-        root_path / filesystem.template_depfile_path("src/template.jinja")
+        root_path / paths.template_depfile_path("src/template.jinja")
     ).exists()
     assert (
-        root_path / filesystem.template_dyndep_path("src/template.jinja")
+        root_path / paths.template_dyndep_path("src/template.jinja")
     ).exists()
 
 
 def test_render(root_path: pathlib.Path) -> None:
-    template_state_path = root_path / filesystem.template_state_path(
+    template_state_path = root_path / paths.template_state_path(
         "src/template.jinja"
     )
     template_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,5 +134,5 @@ def test_render(root_path: pathlib.Path) -> None:
 
     assert (root_path / "build/output").read_text() == "3"
     assert (
-        root_path / filesystem.template_render_stamp_path("src/template.jinja")
+        root_path / paths.template_render_stamp_path("src/template.jinja")
     ).exists()

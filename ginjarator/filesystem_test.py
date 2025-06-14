@@ -17,7 +17,6 @@
 from collections.abc import Callable
 import json
 import pathlib
-import re
 import textwrap
 import time
 
@@ -25,6 +24,7 @@ import pytest
 
 from ginjarator import config
 from ginjarator import filesystem
+from ginjarator import paths
 
 
 def _sleep_for_mtime() -> None:
@@ -55,37 +55,6 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
     return tmp_path
 
 
-def test_internal_path() -> None:
-    assert re.fullmatch(
-        r"\.ginjarator/dependencies/foo%2[Ff]bar\.json",
-        str(filesystem.internal_path("dependencies", "foo/bar.json")),
-    )
-
-
-def test_template_state_path() -> None:
-    assert filesystem.template_state_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.json"
-    )
-
-
-def test_template_depfile_path() -> None:
-    assert filesystem.template_depfile_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.d"
-    )
-
-
-def test_template_dyndep_path() -> None:
-    assert filesystem.template_dyndep_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.dd"
-    )
-
-
-def test_template_render_stamp_path() -> None:
-    assert filesystem.template_render_stamp_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.render-stamp"
-    )
-
-
 def test_mode_configure_twice() -> None:
     mode = filesystem.InternalMode()
     minimal_config = config.Minimal(source_paths=(), build_paths=())
@@ -105,14 +74,14 @@ def test_mode_no_configure() -> None:
 @pytest.mark.parametrize(
     "mode,config_path",
     (
-        (lambda _: filesystem.InternalMode(), filesystem.CONFIG_PATH),
-        (lambda _: filesystem.NinjaMode(), filesystem.CONFIG_PATH),
-        (lambda _: filesystem.ScanMode(), filesystem.MINIMAL_CONFIG_PATH),
+        (lambda _: filesystem.InternalMode(), paths.CONFIG_PATH),
+        (lambda _: filesystem.NinjaMode(), paths.CONFIG_PATH),
+        (lambda _: filesystem.ScanMode(), paths.MINIMAL_CONFIG_PATH),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
             ),
-            filesystem.MINIMAL_CONFIG_PATH,
+            paths.MINIMAL_CONFIG_PATH,
         ),
     ),
 )
@@ -143,7 +112,7 @@ def test_filesystem_resolve(root_path: pathlib.Path) -> None:
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "relative",
                 ),
             ),
@@ -152,7 +121,7 @@ def test_filesystem_resolve(root_path: pathlib.Path) -> None:
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     pathlib.Path("/absolute"),
                 ),
             ),
@@ -160,7 +129,7 @@ def test_filesystem_resolve(root_path: pathlib.Path) -> None:
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
             ),
             "src/some-file",
         ),
@@ -187,7 +156,7 @@ def test_filesystem_add_dependency_not_allowed(
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "src/some-file",
                 ),
             ),
@@ -196,7 +165,7 @@ def test_filesystem_add_dependency_not_allowed(
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "build/some-file",
                 ),
             ),
@@ -229,7 +198,7 @@ def test_filesystem_add_dependency(
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "relative",
                 ),
             ),
@@ -238,7 +207,7 @@ def test_filesystem_add_dependency(
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     pathlib.Path("/absolute"),
                 ),
             ),
@@ -246,7 +215,7 @@ def test_filesystem_add_dependency(
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
             ),
             "src/some-file",
         ),
@@ -294,7 +263,7 @@ def test_filesystem_read_text_returns_none(root_path: pathlib.Path) -> None:
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "src/some-file",
                 ),
             ),
@@ -303,7 +272,7 @@ def test_filesystem_read_text_returns_none(root_path: pathlib.Path) -> None:
         (
             lambda root: filesystem.RenderMode(
                 dependencies=(
-                    root / filesystem.MINIMAL_CONFIG_PATH,
+                    root / paths.MINIMAL_CONFIG_PATH,
                     root / "build/some-file",
                 ),
             ),
@@ -352,28 +321,28 @@ def test_filesystem_read_config(root_path: pathlib.Path) -> None:
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "relative",),
             ),
             "relative",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(pathlib.Path("/absolute"),),
             ),
             "/absolute",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "src/some-file",),
             ),
             "src/some-file",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
             ),
             "build/some-file",
         ),
@@ -397,7 +366,7 @@ def test_filesystem_add_output_not_allowed(
         (lambda _: filesystem.ScanMode(), "build/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "build/some-file",),
             ),
             "build/some-file",
@@ -432,28 +401,28 @@ def test_filesystem_add_output(
         (lambda _: filesystem.ScanMode(), "src/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "relative",),
             ),
             "relative",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(pathlib.Path("/absolute"),),
             ),
             "/absolute",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "src/some-file",),
             ),
             "src/some-file",
         ),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
             ),
             "build/some-file",
         ),
@@ -500,7 +469,7 @@ def test_filesystem_write_text_deferred(root_path: pathlib.Path) -> None:
         (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "build/some-file",),
             ),
             "build/some-file",
@@ -541,7 +510,7 @@ def test_filesystem_write_text_noop(
         (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "build/some-file",),
             ),
             "build/some-file",
@@ -572,7 +541,7 @@ def test_filesystem_write_text_writes_new_file(
         (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
         (
             lambda root: filesystem.RenderMode(
-                dependencies=(root / filesystem.MINIMAL_CONFIG_PATH,),
+                dependencies=(root / paths.MINIMAL_CONFIG_PATH,),
                 outputs=(root / "build/some-file",),
             ),
             "build/some-file",
@@ -632,7 +601,7 @@ def test_filesystem_write_text_macro_writes(root_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         root_path,
         mode=filesystem.RenderMode(
-            dependencies=(root_path / filesystem.MINIMAL_CONFIG_PATH,),
+            dependencies=(root_path / paths.MINIMAL_CONFIG_PATH,),
             outputs=(root_path / "build/some-file",),
         ),
     )

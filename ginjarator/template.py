@@ -23,6 +23,7 @@ import jinja2
 
 from ginjarator import build
 from ginjarator import filesystem
+from ginjarator import paths
 from ginjarator import python
 
 
@@ -114,9 +115,7 @@ def scan(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_name)
-    state_path = internal_fs.resolve(
-        filesystem.template_state_path(template_name)
-    )
+    state_path = internal_fs.resolve(paths.template_state_path(template_name))
     internal_fs.write_text(
         state_path,
         json.dumps(
@@ -130,14 +129,14 @@ def scan(
         ),
     )
     internal_fs.write_text(
-        filesystem.template_depfile_path(template_name),
+        paths.template_depfile_path(template_name),
         build.to_depfile({state_path: api.fs.dependencies}),
     )
     render_stamp_path = internal_fs.resolve(
-        filesystem.template_render_stamp_path(template_name)
+        paths.template_render_stamp_path(template_name)
     )
     internal_fs.write_text(
-        filesystem.template_dyndep_path(template_name),
+        paths.template_dyndep_path(template_name),
         textwrap.dedent(
             f"""\
             ninja_dyndep_version = 1
@@ -163,7 +162,7 @@ def render(
     internal_fs = filesystem.Filesystem(root_path)
     state = json.loads(
         internal_fs.read_text(
-            filesystem.template_state_path(template_name),
+            paths.template_state_path(template_name),
             defer_ok=False,
         )
     )
@@ -178,7 +177,7 @@ def render(
     )
     _render(api, template_name)
     internal_fs.write_text(
-        filesystem.template_render_stamp_path(template_name),
+        paths.template_render_stamp_path(template_name),
         "",
         preserve_mtime=False,
     )

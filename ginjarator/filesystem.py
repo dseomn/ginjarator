@@ -19,51 +19,9 @@ import json
 import pathlib
 import tomllib
 from typing import Any, Literal, Never, overload, override
-import urllib.parse
 
 from ginjarator import config
-
-CONFIG_PATH = pathlib.Path("ginjarator.toml")
-BUILD_PATH = pathlib.Path("build.ninja")
-INTERNAL_DIR = pathlib.Path(".ginjarator")
-
-
-def internal_path(*components: str) -> pathlib.Path:
-    """Returns a path for internal state.
-
-    Args:
-        *components: Path components. Each one is escaped to remove "/", so
-            other paths can be used as single components. However, "." and ".."
-            are not escaped.
-    """
-    return INTERNAL_DIR.joinpath(
-        *(urllib.parse.quote(component, safe="") for component in components)
-    )
-
-
-MINIMAL_CONFIG_PATH = internal_path("config", "minimal.json")
-
-
-def template_state_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for template state."""
-    return internal_path("templates", f"{template_name}.json")
-
-
-def template_depfile_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for a template's depfile."""
-    return internal_path("templates", f"{template_name}.d")
-
-
-def template_dyndep_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for a template's dyndep file."""
-    return internal_path("templates", f"{template_name}.dd")
-
-
-def template_render_stamp_path(
-    template_name: pathlib.Path | str,
-) -> pathlib.Path:
-    """Returns the path for a template's render stamp."""
-    return internal_path("templates", f"{template_name}.render-stamp")
+from ginjarator import paths
 
 
 def _is_relative_to_any(
@@ -180,8 +138,8 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(CONFIG_PATH),
-                self.resolve(INTERNAL_DIR),
+                self.resolve(paths.CONFIG_PATH),
+                self.resolve(paths.INTERNAL_DIR),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -196,8 +154,8 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(BUILD_PATH),
-                self.resolve(INTERNAL_DIR),
+                self.resolve(paths.BUILD_PATH),
+                self.resolve(paths.INTERNAL_DIR),
             ),
         )
 
@@ -225,7 +183,7 @@ class NinjaMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(CONFIG_PATH),
+                self.resolve(paths.CONFIG_PATH),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -258,8 +216,8 @@ class ScanMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(CONFIG_PATH),
-                self.resolve(MINIMAL_CONFIG_PATH),
+                self.resolve(paths.CONFIG_PATH),
+                self.resolve(paths.MINIMAL_CONFIG_PATH),
                 *self.minimal_config.source_paths,
                 *self.minimal_config.build_paths,
             ),
@@ -271,8 +229,8 @@ class ScanMode(Mode):
         return _is_relative_to_any(
             path,
             (
-                self.resolve(CONFIG_PATH),
-                self.resolve(MINIMAL_CONFIG_PATH),
+                self.resolve(paths.CONFIG_PATH),
+                self.resolve(paths.MINIMAL_CONFIG_PATH),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -362,12 +320,12 @@ class Filesystem:
         # because of the circular dependency otherwise. The dependency is added
         # below.
         if self._mode.use_cache_to_configure():
-            minimal_config_loaded_from = MINIMAL_CONFIG_PATH
+            minimal_config_loaded_from = paths.MINIMAL_CONFIG_PATH
             minimal_config = config.Minimal.parse(
                 json.loads(self.resolve(minimal_config_loaded_from).read_text())
             )
         else:
-            minimal_config_loaded_from = CONFIG_PATH
+            minimal_config_loaded_from = paths.CONFIG_PATH
             minimal_config = config.Config.parse(
                 tomllib.loads(
                     self.resolve(minimal_config_loaded_from).read_text()
@@ -455,7 +413,7 @@ class Filesystem:
     def read_config(self) -> config.Config:
         """Returns the config."""
         return config.Config.parse(
-            tomllib.loads(self.read_text(CONFIG_PATH, defer_ok=False))
+            tomllib.loads(self.read_text(paths.CONFIG_PATH, defer_ok=False))
         )
 
     def add_output(self, path: pathlib.Path | str) -> None:
