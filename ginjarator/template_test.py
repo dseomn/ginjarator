@@ -16,6 +16,7 @@
 
 import json
 import pathlib
+import textwrap
 
 import jinja2
 import pytest
@@ -26,7 +27,24 @@ from ginjarator import template
 
 @pytest.fixture(name="root_path")
 def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
-    (tmp_path / "ginjarator.toml").write_text("")
+    (tmp_path / "ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            source_paths = ["src"]
+            build_paths = ["build"]
+            """
+        )
+    )
+    (tmp_path / ".ginjarator").mkdir()
+    (tmp_path / ".ginjarator/config").mkdir()
+    (tmp_path / ".ginjarator/config/minimal.json").write_text(
+        json.dumps(
+            dict(
+                source_paths=["src"],
+                build_paths=["build"],
+            )
+        )
+    )
     (tmp_path / "src").mkdir()
     return tmp_path
 
@@ -54,7 +72,7 @@ def test_ninja(root_path: pathlib.Path) -> None:
     rendered = template.ninja("src/template.jinja", internal_fs=internal_fs)
 
     assert rendered == "contents"
-    assert set(internal_fs.dependencies) == {root_path / "src/template.jinja"}
+    assert set(internal_fs.dependencies) >= {root_path / "src/template.jinja"}
 
 
 def test_scan(root_path: pathlib.Path) -> None:
@@ -73,7 +91,10 @@ def test_scan(root_path: pathlib.Path) -> None:
 
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
-        dependencies=[str(root_path / "src/template.jinja")],
+        dependencies=[
+            str(root_path / ".ginjarator/config/minimal.json"),
+            str(root_path / "src/template.jinja"),
+        ],
         outputs=[str(root_path / "build/output")],
     )
     assert (
@@ -92,7 +113,10 @@ def test_render(root_path: pathlib.Path) -> None:
     template_state_path.write_text(
         json.dumps(
             dict(
-                dependencies=[str(root_path / "src/template.jinja")],
+                dependencies=[
+                    str(root_path / ".ginjarator/config/minimal.json"),
+                    str(root_path / "src/template.jinja"),
+                ],
                 outputs=[str(root_path / "build/output")],
             )
         )

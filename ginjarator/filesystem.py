@@ -15,6 +15,7 @@
 
 import abc
 from collections.abc import Callable, Collection
+import json
 import pathlib
 import tomllib
 from typing import Any, Literal, Never, overload, override
@@ -98,6 +99,10 @@ class Mode(abc.ABC):
             None
         )
 
+    def use_cache_to_configure(self) -> bool:
+        """Whether the minimal config should be read from cache."""
+        return True
+
     def configure(
         self,
         *,
@@ -167,6 +172,10 @@ class InternalMode(Mode):
     """Access by ginjarator itself, not templates."""
 
     @override
+    def use_cache_to_configure(self) -> bool:
+        return False
+
+    @override
     def check_dependency(self, path: pathlib.Path) -> None:
         _check_allowed(
             path,
@@ -204,6 +213,12 @@ class NinjaMode(Mode):
     * Any source path can be added as a dependency or read.
     * No outputs or writing are allowed.
     """
+
+    @override
+    def use_cache_to_configure(self) -> bool:
+        # Ninja templates are rendered during init, which also writes the
+        # minimal config cache. This prevents circular dependencies.
+        return False
 
     @override
     def check_dependency(self, path: pathlib.Path) -> None:
@@ -244,6 +259,7 @@ class ScanMode(Mode):
             path,
             (
                 self.resolve(CONFIG_PATH),
+                self.resolve(MINIMAL_CONFIG_PATH),
                 *self.minimal_config.source_paths,
                 *self.minimal_config.build_paths,
             ),
@@ -256,6 +272,7 @@ class ScanMode(Mode):
             path,
             (
                 self.resolve(CONFIG_PATH),
+                self.resolve(MINIMAL_CONFIG_PATH),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -342,25 +359,37 @@ class Filesystem:
         self._mode = InternalMode() if mode is None else mode
 
         # This has to use pathlib.Path.read_text() instead of self.read_text()
-        # because of the circular dependency otherwise. In theory, every
-        # template should depend on the config file, but I think in most
-        # circumstances the extra rebuilding wouldn't be worth the extra
-        # correctness. If that turns out to be wrong, self.add_dependency() can
-        # be called after the path attributes are initialized below.
-        config_ = config.Config.parse(
-            tomllib.loads(self.resolve(CONFIG_PATH).read_text())
-        )
+        # because of the circular dependency otherwise. The dependency is added
+        # below.
+        if self._mode.use_cache_to_configure():
+            minimal_config_loaded_from = MINIMAL_CONFIG_PATH
+            minimal_config = config.Minimal.parse(
+                json.loads(self.resolve(minimal_config_loaded_from).read_text())
+            )
+        else:
+            minimal_config_loaded_from = CONFIG_PATH
+            minimal_config = config.Config.parse(
+                tomllib.loads(
+                    self.resolve(minimal_config_loaded_from).read_text()
+                )
+            )
         self._mode.configure(
             minimal_config=config.Minimal(
-                source_paths=frozenset(map(self.resolve, config_.source_paths)),
-                build_paths=frozenset(map(self.resolve, config_.build_paths)),
+                source_paths=frozenset(
+                    map(self.resolve, minimal_config.source_paths)
+                ),
+                build_paths=frozenset(
+                    map(self.resolve, minimal_config.build_paths)
+                ),
             ),
             resolve=self.resolve,
         )
-        del config_
 
         self._dependencies = set[pathlib.Path]()
         self._outputs = set[pathlib.Path]()
+
+        # This has to be after everything is initialized.
+        self.add_dependency(minimal_config_loaded_from)
 
     @property
     def dependencies(self) -> Collection[pathlib.Path]:
