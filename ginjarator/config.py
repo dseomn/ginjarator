@@ -13,7 +13,7 @@
 # limitations under the License.
 """Config file."""
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 import dataclasses
 import pathlib
 from typing import Any, override, Self
@@ -81,8 +81,8 @@ class Config(Minimal):
         templates: Normal templates to render.
     """
 
-    ninja_templates: Collection[pathlib.Path]
-    templates: Collection[pathlib.Path]
+    ninja_templates: Sequence[pathlib.Path]
+    templates: Sequence[pathlib.Path]
 
     @classmethod
     @override
