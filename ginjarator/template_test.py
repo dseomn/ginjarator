@@ -77,9 +77,7 @@ def test_ninja(root_path: pathlib.Path) -> None:
 
 
 def test_scan(root_path: pathlib.Path) -> None:
-    template_state_path = root_path / paths.template_state_path(
-        "src/template.jinja"
-    )
+    template_state_path = root_path / paths.template_state("src/template.jinja")
     (root_path / "src/template.jinja").write_text(
         """
         {% call ginjarator.fs.write_text_macro("build/output") %}
@@ -98,18 +96,12 @@ def test_scan(root_path: pathlib.Path) -> None:
         ],
         outputs=[str(root_path / "build/output")],
     )
-    assert (
-        root_path / paths.template_depfile_path("src/template.jinja")
-    ).exists()
-    assert (
-        root_path / paths.template_dyndep_path("src/template.jinja")
-    ).exists()
+    assert (root_path / paths.template_depfile("src/template.jinja")).exists()
+    assert (root_path / paths.template_dyndep("src/template.jinja")).exists()
 
 
 def test_render(root_path: pathlib.Path) -> None:
-    template_state_path = root_path / paths.template_state_path(
-        "src/template.jinja"
-    )
+    template_state_path = root_path / paths.template_state("src/template.jinja")
     template_state_path.parent.mkdir(parents=True, exist_ok=True)
     template_state_path.write_text(
         json.dumps(
@@ -134,5 +126,5 @@ def test_render(root_path: pathlib.Path) -> None:
 
     assert (root_path / "build/output").read_text() == "3"
     assert (
-        root_path / paths.template_render_stamp_path("src/template.jinja")
+        root_path / paths.template_render_stamp("src/template.jinja")
     ).exists()

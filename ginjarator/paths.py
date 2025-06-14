@@ -16,12 +16,12 @@
 import pathlib
 import urllib.parse
 
-CONFIG_PATH = pathlib.Path("ginjarator.toml")
+CONFIG = pathlib.Path("ginjarator.toml")
 
-INTERNAL_DIR = pathlib.Path(".ginjarator")
+INTERNAL = pathlib.Path(".ginjarator")
 
 
-def internal_path(*components: str) -> pathlib.Path:
+def internal(*components: str) -> pathlib.Path:
     """Returns a path for internal state.
 
     Args:
@@ -29,32 +29,32 @@ def internal_path(*components: str) -> pathlib.Path:
             other paths can be used as single components. However, "." and ".."
             are not escaped.
     """
-    return INTERNAL_DIR.joinpath(
+    return INTERNAL.joinpath(
         *(urllib.parse.quote(component, safe="") for component in components)
     )
 
 
 NINJA_ENTRYPOINT = pathlib.Path("build.ninja")
-MINIMAL_CONFIG_PATH = internal_path("config", "minimal.json")
+MINIMAL_CONFIG = internal("config", "minimal.json")
 
 
-def template_state_path(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_state(template_name: pathlib.Path | str) -> pathlib.Path:
     """Returns the path for template state."""
-    return internal_path("templates", f"{template_name}.json")
+    return internal("templates", f"{template_name}.json")
 
 
-def template_depfile_path(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_depfile(template_name: pathlib.Path | str) -> pathlib.Path:
     """Returns the path for a template's depfile."""
-    return internal_path("templates", f"{template_name}.d")
+    return internal("templates", f"{template_name}.d")
 
 
-def template_dyndep_path(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_dyndep(template_name: pathlib.Path | str) -> pathlib.Path:
     """Returns the path for a template's dyndep file."""
-    return internal_path("templates", f"{template_name}.dd")
+    return internal("templates", f"{template_name}.dd")
 
 
-def template_render_stamp_path(
+def template_render_stamp(
     template_name: pathlib.Path | str,
 ) -> pathlib.Path:
     """Returns the path for a template's render stamp."""
-    return internal_path("templates", f"{template_name}.render-stamp")
+    return internal("templates", f"{template_name}.render-stamp")

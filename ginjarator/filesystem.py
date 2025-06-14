@@ -138,8 +138,8 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG_PATH),
-                self.resolve(paths.INTERNAL_DIR),
+                self.resolve(paths.CONFIG),
+                self.resolve(paths.INTERNAL),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -154,7 +154,7 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(paths.INTERNAL_DIR),
+                self.resolve(paths.INTERNAL),
                 self.resolve(paths.NINJA_ENTRYPOINT),
             ),
         )
@@ -183,7 +183,7 @@ class NinjaMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG_PATH),
+                self.resolve(paths.CONFIG),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -216,8 +216,8 @@ class ScanMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG_PATH),
-                self.resolve(paths.MINIMAL_CONFIG_PATH),
+                self.resolve(paths.CONFIG),
+                self.resolve(paths.MINIMAL_CONFIG),
                 *self.minimal_config.source_paths,
                 *self.minimal_config.build_paths,
             ),
@@ -229,8 +229,8 @@ class ScanMode(Mode):
         return _is_relative_to_any(
             path,
             (
-                self.resolve(paths.CONFIG_PATH),
-                self.resolve(paths.MINIMAL_CONFIG_PATH),
+                self.resolve(paths.CONFIG),
+                self.resolve(paths.MINIMAL_CONFIG),
                 *self.minimal_config.source_paths,
             ),
         )
@@ -320,12 +320,12 @@ class Filesystem:
         # because of the circular dependency otherwise. The dependency is added
         # below.
         if self._mode.use_cache_to_configure():
-            minimal_config_loaded_from = paths.MINIMAL_CONFIG_PATH
+            minimal_config_loaded_from = paths.MINIMAL_CONFIG
             minimal_config = config.Minimal.parse(
                 json.loads(self.resolve(minimal_config_loaded_from).read_text())
             )
         else:
-            minimal_config_loaded_from = paths.CONFIG_PATH
+            minimal_config_loaded_from = paths.CONFIG
             minimal_config = config.Config.parse(
                 tomllib.loads(
                     self.resolve(minimal_config_loaded_from).read_text()
@@ -413,7 +413,7 @@ class Filesystem:
     def read_config(self) -> config.Config:
         """Returns the config."""
         return config.Config.parse(
-            tomllib.loads(self.read_text(paths.CONFIG_PATH, defer_ok=False))
+            tomllib.loads(self.read_text(paths.CONFIG, defer_ok=False))
         )
 
     def add_output(self, path: pathlib.Path | str) -> None:
