@@ -15,7 +15,6 @@
 
 import abc
 from collections.abc import Callable, Collection
-import dataclasses
 import pathlib
 import tomllib
 from typing import Any, Literal, Never, overload, override
@@ -51,43 +50,41 @@ def _forbid_all(path: pathlib.Path) -> Never:
     raise ValueError(f"{str(path)!r} is not in allowed paths: {()}")
 
 
-@dataclasses.dataclass(frozen=True, kw_only=True)
-class _ConfigPaths:
-    """Paths from config.Config that a Mode can use to check access.
-
-    They do not use config.Config itself to avoid needing to rebuild as much
-    when other parts of the config change.
-    """
-
-    source_paths: Collection[pathlib.Path]
-    build_paths: Collection[pathlib.Path]
-    resolve: Callable[[pathlib.Path | str], pathlib.Path]
-
-
 class Mode(abc.ABC):
     """How the filesystem can be accessed."""
 
     def __init__(self) -> None:
         self._configured = False
-        self._config_paths: _ConfigPaths | None = None
+        self._minimal_config: config.Minimal | None = None
+        self._resolve: Callable[[pathlib.Path | str], pathlib.Path] | None = (
+            None
+        )
 
     def configure(
         self,
         *,
-        config_paths: _ConfigPaths,
+        minimal_config: config.Minimal,
+        resolve: Callable[[pathlib.Path | str], pathlib.Path],
     ) -> None:
         """Configures the mode for use by a Filesystem."""
         if self._configured:
             raise ValueError("Already configured.")
         self._configured = True
-        self._config_paths = config_paths
+        self._minimal_config = minimal_config
+        self._resolve = resolve
 
     @property
-    def config_paths(self) -> _ConfigPaths:
-        """Config paths."""
-        if self._config_paths is None:
+    def minimal_config(self) -> config.Minimal:
+        """Minimal config."""
+        if self._minimal_config is None:
             raise ValueError("Not configured yet.")
-        return self._config_paths
+        return self._minimal_config
+
+    def resolve(self, path: pathlib.Path | str) -> pathlib.Path:
+        """Filesystem.resolve()."""
+        if self._resolve is None:
+            raise ValueError("Not configured yet.")
+        return self._resolve(path)
 
     @abc.abstractmethod
     def check_dependency(self, path: pathlib.Path) -> None:
@@ -136,9 +133,9 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.config_paths.resolve(CONFIG_PATH),
-                self.config_paths.resolve(INTERNAL_DIR),
-                *self.config_paths.source_paths,
+                self.resolve(CONFIG_PATH),
+                self.resolve(INTERNAL_DIR),
+                *self.minimal_config.source_paths,
             ),
         )
 
@@ -152,8 +149,8 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.config_paths.resolve(BUILD_PATH),
-                self.config_paths.resolve(INTERNAL_DIR),
+                self.resolve(BUILD_PATH),
+                self.resolve(INTERNAL_DIR),
             ),
         )
 
@@ -175,8 +172,8 @@ class NinjaMode(Mode):
         _check_allowed(
             path,
             (
-                self.config_paths.resolve(CONFIG_PATH),
-                *self.config_paths.source_paths,
+                self.resolve(CONFIG_PATH),
+                *self.minimal_config.source_paths,
             ),
         )
 
@@ -208,9 +205,9 @@ class ScanMode(Mode):
         _check_allowed(
             path,
             (
-                self.config_paths.resolve(CONFIG_PATH),
-                *self.config_paths.source_paths,
-                *self.config_paths.build_paths,
+                self.resolve(CONFIG_PATH),
+                *self.minimal_config.source_paths,
+                *self.minimal_config.build_paths,
             ),
         )
 
@@ -220,14 +217,14 @@ class ScanMode(Mode):
         return _is_relative_to_any(
             path,
             (
-                self.config_paths.resolve(CONFIG_PATH),
-                *self.config_paths.source_paths,
+                self.resolve(CONFIG_PATH),
+                *self.minimal_config.source_paths,
             ),
         )
 
     @override
     def check_output(self, path: pathlib.Path) -> None:
-        _check_allowed(path, self.config_paths.build_paths)
+        _check_allowed(path, self.minimal_config.build_paths)
 
     @override
     def check_write(self, path: pathlib.Path) -> bool:
@@ -316,11 +313,11 @@ class Filesystem:
             tomllib.loads(self.resolve(CONFIG_PATH).read_text())
         )
         self._mode.configure(
-            config_paths=_ConfigPaths(
+            minimal_config=config.Minimal(
                 source_paths=frozenset(map(self.resolve, config_.source_paths)),
                 build_paths=frozenset(map(self.resolve, config_.build_paths)),
-                resolve=self.resolve,
             ),
+            resolve=self.resolve,
         )
         del config_
 

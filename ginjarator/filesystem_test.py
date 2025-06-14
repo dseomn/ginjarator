@@ -21,6 +21,7 @@ import time
 
 import pytest
 
+from ginjarator import config
 from ginjarator import filesystem
 
 
@@ -31,20 +32,18 @@ def _sleep_for_mtime() -> None:
 
 def test_mode_configure_twice() -> None:
     mode = filesystem.InternalMode()
-    config_paths = filesystem._ConfigPaths(  # pylint: disable=protected-access
-        source_paths=(),
-        build_paths=(),
-        resolve=pathlib.Path,
-    )
-    mode.configure(config_paths=config_paths)
+    minimal_config = config.Minimal(source_paths=(), build_paths=())
+    mode.configure(minimal_config=minimal_config, resolve=pathlib.Path)
 
     with pytest.raises(ValueError, match="Already configured"):
-        mode.configure(config_paths=config_paths)
+        mode.configure(minimal_config=minimal_config, resolve=pathlib.Path)
 
 
 def test_mode_no_configure() -> None:
     with pytest.raises(ValueError, match="Not configured"):
-        filesystem.InternalMode().check_dependency(pathlib.Path("foo"))
+        filesystem.InternalMode().minimal_config  # pylint: disable=expression-not-assigned
+    with pytest.raises(ValueError, match="Not configured"):
+        filesystem.InternalMode().resolve("")
 
 
 def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
