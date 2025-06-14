@@ -15,6 +15,7 @@
 
 from collections.abc import Collection, Sequence
 import dataclasses
+import itertools
 import pathlib
 from typing import Any, override, Self
 
@@ -36,6 +37,17 @@ class Minimal:
 
     source_paths: Collection[pathlib.Path]
     build_paths: Collection[pathlib.Path]
+
+    def __post_init__(self) -> None:
+        for source_path, build_path in itertools.product(
+            self.source_paths, self.build_paths
+        ):
+            if source_path.is_relative_to(
+                build_path
+            ) or build_path.is_relative_to(source_path):
+                raise ValueError(
+                    "source_paths and build_paths must not overlap."
+                )
 
     @classmethod
     def parse(cls, raw: Any, /, **kwargs: Any) -> Self:

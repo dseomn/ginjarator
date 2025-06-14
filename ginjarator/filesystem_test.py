@@ -47,42 +47,6 @@ def test_mode_no_configure() -> None:
         filesystem.InternalMode().check_dependency(pathlib.Path("foo"))
 
 
-@pytest.mark.parametrize(
-    "config_contents,error_regex",
-    (
-        (
-            """
-            source_paths = ["foo"]
-            build_paths = ["foo"]
-            """,
-            r"must not overlap",
-        ),
-        (
-            """
-            source_paths = ["foo/bar"]
-            build_paths = ["foo"]
-            """,
-            r"must not overlap",
-        ),
-        (
-            """
-            source_paths = ["foo"]
-            build_paths = ["foo/bar"]
-            """,
-            r"must not overlap",
-        ),
-    ),
-)
-def test_filesystem_invalid_paths(
-    config_contents: str,
-    error_regex: str,
-    tmp_path: pathlib.Path,
-) -> None:
-    (tmp_path / filesystem.CONFIG_PATH).write_text(config_contents)
-    with pytest.raises(ValueError, match=error_regex):
-        filesystem.Filesystem(tmp_path)
-
-
 def test_filesystem_resolve(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text("")
     fs = filesystem.Filesystem(tmp_path)

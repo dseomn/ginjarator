@@ -63,16 +63,6 @@ class _ConfigPaths:
     build_paths: Collection[pathlib.Path]
     resolve: Callable[[pathlib.Path | str], pathlib.Path]
 
-    def __post_init__(self) -> None:
-        if any(
-            _is_relative_to_any(source_path, self.build_paths)
-            for source_path in self.source_paths
-        ) or any(
-            _is_relative_to_any(build_path, self.source_paths)
-            for build_path in self.build_paths
-        ):
-            raise ValueError("Source and build paths must not overlap.")
-
 
 class Mode(abc.ABC):
     """How the filesystem can be accessed."""

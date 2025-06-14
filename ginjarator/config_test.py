@@ -22,6 +22,37 @@ import pytest
 from ginjarator import config
 
 
+@pytest.mark.parametrize(
+    "kwargs,error_regex",
+    (
+        (
+            dict(
+                source_paths=(pathlib.Path("foo"),),
+                build_paths=(pathlib.Path("foo"),),
+            ),
+            r"must not overlap",
+        ),
+        (
+            dict(
+                source_paths=(pathlib.Path("foo/bar"),),
+                build_paths=(pathlib.Path("foo"),),
+            ),
+            r"must not overlap",
+        ),
+        (
+            dict(
+                source_paths=(pathlib.Path("foo"),),
+                build_paths=(pathlib.Path("foo/bar"),),
+            ),
+            r"must not overlap",
+        ),
+    ),
+)
+def test_minimal_error(kwargs: dict[str, Any], error_regex: str) -> None:
+    with pytest.raises(ValueError, match=error_regex):
+        config.Minimal(**kwargs)
+
+
 def test_minimal_parse_error() -> None:
     with pytest.raises(ValueError, match="templates"):
         config.Minimal.parse(dict(templates=[]))
