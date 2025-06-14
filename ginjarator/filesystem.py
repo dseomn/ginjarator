@@ -27,6 +27,41 @@ BUILD_PATH = pathlib.Path("build.ninja")
 INTERNAL_DIR = pathlib.Path(".ginjarator")
 
 
+def internal_path(*components: str) -> pathlib.Path:
+    """Returns a path for internal state.
+
+    Args:
+        *components: Path components. Each one is escaped to remove "/", so
+            other paths can be used as single components. However, "." and ".."
+            are not escaped.
+    """
+    return INTERNAL_DIR.joinpath(
+        *(urllib.parse.quote(component, safe="") for component in components)
+    )
+
+
+def template_state_path(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the path for template state."""
+    return internal_path("templates", f"{template_name}.json")
+
+
+def template_depfile_path(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the path for a template's depfile."""
+    return internal_path("templates", f"{template_name}.d")
+
+
+def template_dyndep_path(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the path for a template's dyndep file."""
+    return internal_path("templates", f"{template_name}.dd")
+
+
+def template_render_stamp_path(
+    template_name: pathlib.Path | str,
+) -> pathlib.Path:
+    """Returns the path for a template's render stamp."""
+    return internal_path("templates", f"{template_name}.render-stamp")
+
+
 def _is_relative_to_any(
     path: pathlib.Path,
     others: Collection[pathlib.Path],
@@ -453,38 +488,3 @@ class Filesystem:
         contents = caller()
         self.write_text(path, contents)
         return contents
-
-
-def internal_path(*components: str) -> pathlib.Path:
-    """Returns a path for internal state.
-
-    Args:
-        *components: Path components. Each one is escaped to remove "/", so
-            other paths can be used as single components. However, "." and ".."
-            are not escaped.
-    """
-    return INTERNAL_DIR.joinpath(
-        *(urllib.parse.quote(component, safe="") for component in components)
-    )
-
-
-def template_state_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for template state."""
-    return internal_path("templates", f"{template_name}.json")
-
-
-def template_depfile_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for a template's depfile."""
-    return internal_path("templates", f"{template_name}.d")
-
-
-def template_dyndep_path(template_name: pathlib.Path | str) -> pathlib.Path:
-    """Returns the path for a template's dyndep file."""
-    return internal_path("templates", f"{template_name}.dd")
-
-
-def template_render_stamp_path(
-    template_name: pathlib.Path | str,
-) -> pathlib.Path:
-    """Returns the path for a template's render stamp."""
-    return internal_path("templates", f"{template_name}.render-stamp")

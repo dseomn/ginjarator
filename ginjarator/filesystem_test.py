@@ -30,6 +30,37 @@ def _sleep_for_mtime() -> None:
     time.sleep(0.01)
 
 
+def test_internal_path() -> None:
+    assert re.fullmatch(
+        r"\.ginjarator/dependencies/foo%2[Ff]bar\.json",
+        str(filesystem.internal_path("dependencies", "foo/bar.json")),
+    )
+
+
+def test_template_state_path() -> None:
+    assert filesystem.template_state_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.json"
+    )
+
+
+def test_template_depfile_path() -> None:
+    assert filesystem.template_depfile_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.d"
+    )
+
+
+def test_template_dyndep_path() -> None:
+    assert filesystem.template_dyndep_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.dd"
+    )
+
+
+def test_template_render_stamp_path() -> None:
+    assert filesystem.template_render_stamp_path("foo") == pathlib.Path(
+        ".ginjarator/templates/foo.render-stamp"
+    )
+
+
 def test_mode_configure_twice() -> None:
     mode = filesystem.InternalMode()
     minimal_config = config.Minimal(source_paths=(), build_paths=())
@@ -525,34 +556,3 @@ def test_filesystem_write_text_macro_writes(tmp_path: pathlib.Path) -> None:
 
     assert full_path.read_text() == contents
     assert returned == contents
-
-
-def test_internal_path() -> None:
-    assert re.fullmatch(
-        r"\.ginjarator/dependencies/foo%2[Ff]bar\.json",
-        str(filesystem.internal_path("dependencies", "foo/bar.json")),
-    )
-
-
-def test_template_state_path() -> None:
-    assert filesystem.template_state_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.json"
-    )
-
-
-def test_template_depfile_path() -> None:
-    assert filesystem.template_depfile_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.d"
-    )
-
-
-def test_template_dyndep_path() -> None:
-    assert filesystem.template_dyndep_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.dd"
-    )
-
-
-def test_template_render_stamp_path() -> None:
-    assert filesystem.template_render_stamp_path("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.render-stamp"
-    )
