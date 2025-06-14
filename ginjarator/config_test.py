@@ -77,6 +77,27 @@ def test_config_parse_error() -> None:
                 build_paths=(pathlib.Path("build1"), pathlib.Path("build2")),
             ),
         ),
+        (
+            # Minimal's fields are normalized.
+            dict(
+                source_paths=["src2", "src2", "src1"],
+                build_paths=["build2", "build2", "build1"],
+            ),
+            config.Config(
+                source_paths=(pathlib.Path("src1"), pathlib.Path("src2")),
+                build_paths=(pathlib.Path("build1"), pathlib.Path("build2")),
+                ninja_templates=(),
+                templates=(),
+            ),
+            dict(
+                source_paths=["src1", "src2"],
+                build_paths=["build1", "build2"],
+            ),
+            config.Minimal(
+                source_paths=(pathlib.Path("src1"), pathlib.Path("src2")),
+                build_paths=(pathlib.Path("build1"), pathlib.Path("build2")),
+            ),
+        ),
     ),
 )
 def test_config(

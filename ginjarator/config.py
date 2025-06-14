@@ -39,7 +39,12 @@ class Minimal:
 
     @classmethod
     def parse(cls, raw: Any, /, **kwargs: Any) -> Self:
-        """Returns the parsed config from data."""
+        """Returns the parsed config from data.
+
+        To avoid triggering rebuilds when they're not needed, this should
+        normalize the data as much as possible. E.g., the order of source_paths
+        has no effect, so that's sorted.
+        """
         if unexpected_keys := raw.keys() - {
             "source_paths",
             "build_paths",
@@ -47,24 +52,21 @@ class Minimal:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
             source_paths=tuple(
-                map(pathlib.Path, raw.get("source_paths", ["src"]))
+                map(pathlib.Path, sorted(set(raw.get("source_paths", ["src"]))))
             ),
             build_paths=tuple(
-                map(pathlib.Path, raw.get("build_paths", ["build"]))
+                map(
+                    pathlib.Path, sorted(set(raw.get("build_paths", ["build"])))
+                )
             ),
             **kwargs,
         )
 
     def serialize_minimal(self) -> Any:
-        """Returns the Minimal config suitable for dumping as JSON.
-
-        To avoid triggering rebuilds when they're not needed, this should
-        normalize the data as much as possible. E.g., the order of source_paths
-        has no effect, so that's sorted.
-        """
+        """Returns the Minimal config suitable for dumping as JSON."""
         return dict(
-            source_paths=sorted(set(map(str, self.source_paths))),
-            build_paths=sorted(set(map(str, self.build_paths))),
+            source_paths=list(map(str, self.source_paths)),
+            build_paths=list(map(str, self.build_paths)),
         )
 
 
