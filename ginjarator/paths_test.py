@@ -27,6 +27,12 @@ def test_internal() -> None:
     )
 
 
+def test_ninja_template_output() -> None:
+    assert paths.ninja_template_output("foo") == pathlib.Path(
+        ".ginjarator/ninja_templates/foo.ninja"
+    )
+
+
 def test_template_state() -> None:
     assert paths.template_state("foo") == pathlib.Path(
         ".ginjarator/templates/foo.json"

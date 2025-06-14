@@ -35,7 +35,15 @@ def internal(*components: str) -> pathlib.Path:
 
 
 NINJA_ENTRYPOINT = pathlib.Path("build.ninja")
+NINJA_ENTRYPOINT_DEPFILE = internal("build.ninja.d")
+NINJA_MAIN = internal("main.ninja")
 MINIMAL_CONFIG = internal("config", "minimal.json")
+SCAN_DONE_STAMP = internal("scan-done.stamp")
+
+
+def ninja_template_output(template_name: pathlib.Path | str) -> pathlib.Path:
+    """Returns the output path for a ninja template."""
+    return internal("ninja_templates", f"{template_name}.ninja")
 
 
 def template_state(template_name: pathlib.Path | str) -> pathlib.Path:

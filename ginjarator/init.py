@@ -36,7 +36,7 @@ def _main_ninja_for_template(
     depfile_path = fs.resolve(paths.template_depfile(template_name))
     dyndep_path = fs.resolve(paths.template_dyndep(template_name))
     render_stamp_path = fs.resolve(paths.template_render_stamp(template_name))
-    scan_done_stamp_path = fs.resolve(paths.internal("scan-done.stamp"))
+    scan_done_stamp_path = fs.resolve(paths.SCAN_DONE_STAMP)
     return textwrap.dedent(
         f"""\
         build $
@@ -73,7 +73,7 @@ def _main_ninja(
     fs: filesystem.Filesystem,
     config_: config.Config,
 ) -> str:
-    scan_done_stamp_path = fs.resolve(paths.internal("scan-done.stamp"))
+    scan_done_stamp_path = fs.resolve(paths.SCAN_DONE_STAMP)
     scan_done_dependencies = []
 
     parts = []
@@ -110,7 +110,7 @@ def _main_ninja(
             fs.resolve(paths.template_state(template_name))
         )
 
-    depfile_path = fs.resolve(paths.internal(f"{paths.NINJA_ENTRYPOINT}.d"))
+    depfile_path = fs.resolve(paths.NINJA_ENTRYPOINT_DEPFILE)
     fs.write_text(
         depfile_path,
         build.to_depfile({paths.NINJA_ENTRYPOINT: fs.dependencies}),
@@ -175,10 +175,7 @@ def init(
 
     for template_name in config_.ninja_templates:
         template_ninja_path = fs.resolve(
-            paths.internal(
-                "ninja_templates",
-                f"{template_name}.ninja",
-            )
+            paths.ninja_template_output(template_name)
         )
         subninjas.append(template_ninja_path)
         subninjas_changed.append(
@@ -190,7 +187,7 @@ def init(
 
     # This has to be the last subninja, so that it can include the dependencies
     # and outputs added by previous subninjas.
-    main_ninja_path = fs.resolve(paths.internal("main.ninja"))
+    main_ninja_path = fs.resolve(paths.NINJA_MAIN)
     fs.add_output(main_ninja_path)
     subninjas.append(main_ninja_path)
     subninjas_changed.append(
