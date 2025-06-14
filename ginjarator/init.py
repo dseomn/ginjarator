@@ -50,7 +50,7 @@ def _main_ninja_for_template(
                 scan $
                 {build.to_ninja(path)} $
                 || $
-                {build.to_ninja(paths.BUILD_PATH)}
+                {build.to_ninja(paths.NINJA_ENTRYPOINT)}
             depfile = {build.to_ninja(depfile_path)}
             template = {build.to_ninja(template_name, escape_shell=True)}
 
@@ -112,10 +112,12 @@ def _main_ninja(
             fs.resolve(paths.template_state_path(template_name))
         )
 
-    depfile_path = fs.resolve(paths.internal_path(f"{paths.BUILD_PATH}.d"))
+    depfile_path = fs.resolve(
+        paths.internal_path(f"{paths.NINJA_ENTRYPOINT}.d")
+    )
     fs.write_text(
         depfile_path,
-        build.to_depfile({paths.BUILD_PATH: fs.dependencies}),
+        build.to_depfile({paths.NINJA_ENTRYPOINT: fs.dependencies}),
     )
 
     # It seems that build.ninja needs to be a relative path for ninja to reload
@@ -125,7 +127,7 @@ def _main_ninja(
         textwrap.dedent(
             f"""\
             build $
-                    {build.to_ninja(paths.BUILD_PATH)} $
+                    {build.to_ninja(paths.NINJA_ENTRYPOINT)} $
                     {build.to_ninja(sorted(fs.outputs))} $
                     : $
                     init
@@ -200,7 +202,7 @@ def init(
     )
 
     fs.write_text(
-        paths.BUILD_PATH,
+        paths.NINJA_ENTRYPOINT,
         "".join(
             (
                 f"ninja_required_version = {_NINJA_REQUIRED_VERSION}\n",

@@ -34,7 +34,7 @@ def internal_path(*components: str) -> pathlib.Path:
     )
 
 
-BUILD_PATH = pathlib.Path("build.ninja")
+NINJA_ENTRYPOINT = pathlib.Path("build.ninja")
 MINIMAL_CONFIG_PATH = internal_path("config", "minimal.json")
 
 

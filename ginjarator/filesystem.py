@@ -154,8 +154,8 @@ class InternalMode(Mode):
         _check_allowed(
             path,
             (
-                self.resolve(paths.BUILD_PATH),
                 self.resolve(paths.INTERNAL_DIR),
+                self.resolve(paths.NINJA_ENTRYPOINT),
             ),
         )
 
