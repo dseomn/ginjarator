@@ -87,7 +87,7 @@ def test_mode_no_configure() -> None:
 )
 def test_init_depends_on_config(
     mode: Callable[[pathlib.Path], filesystem.Mode],
-    config_path: pathlib.Path,
+    config_path: paths.Filesystem,
     root_path: pathlib.Path,
 ) -> None:
     fs = filesystem.Filesystem(root_path, mode=mode(root_path))
@@ -301,7 +301,9 @@ def test_filesystem_read_config(root_path: pathlib.Path) -> None:
     (root_path / "ginjarator.toml").write_text("source_paths = ['foo']")
     fs = filesystem.Filesystem(root_path)
 
-    assert tuple(fs.read_config().source_paths) == (pathlib.Path("foo"),)
+    assert tuple(fs.read_config().source_paths) == (
+        paths.Filesystem(pathlib.PurePath("foo")),
+    )
     assert set(fs.dependencies) >= {root_path / "ginjarator.toml"}
 
 

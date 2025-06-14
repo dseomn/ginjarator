@@ -28,30 +28,30 @@ def test_internal() -> None:
 
 
 def test_ninja_template_output() -> None:
-    assert paths.ninja_template_output("foo") == pathlib.Path(
-        ".ginjarator/ninja_templates/foo.ninja"
+    assert paths.ninja_template_output("foo") == paths.Filesystem(
+        pathlib.PurePath(".ginjarator/ninja_templates/foo.ninja")
     )
 
 
 def test_template_state() -> None:
-    assert paths.template_state("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.json"
+    assert paths.template_state("foo") == paths.Filesystem(
+        pathlib.PurePath(".ginjarator/templates/foo.json")
     )
 
 
 def test_template_depfile() -> None:
-    assert paths.template_depfile("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.d"
+    assert paths.template_depfile("foo") == paths.Filesystem(
+        pathlib.PurePath(".ginjarator/templates/foo.d")
     )
 
 
 def test_template_dyndep() -> None:
-    assert paths.template_dyndep("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.dd"
+    assert paths.template_dyndep("foo") == paths.Filesystem(
+        pathlib.PurePath(".ginjarator/templates/foo.dd")
     )
 
 
 def test_template_render_stamp() -> None:
-    assert paths.template_render_stamp("foo") == pathlib.Path(
-        ".ginjarator/templates/foo.render-stamp"
+    assert paths.template_render_stamp("foo") == paths.Filesystem(
+        pathlib.PurePath(".ginjarator/templates/foo.render-stamp")
     )

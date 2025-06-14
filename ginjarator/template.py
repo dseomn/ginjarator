@@ -115,7 +115,7 @@ def scan(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_name)
-    state_path = internal_fs.resolve(paths.template_state(template_name))
+    state_path = paths.template_state(template_name)
     internal_fs.write_text(
         state_path,
         json.dumps(
@@ -130,7 +130,9 @@ def scan(
     )
     internal_fs.write_text(
         paths.template_depfile(template_name),
-        build.to_depfile({state_path: api.fs.dependencies}),
+        build.to_depfile(
+            {internal_fs.resolve(state_path): api.fs.dependencies}
+        ),
     )
     render_stamp_path = internal_fs.resolve(
         paths.template_render_stamp(template_name)

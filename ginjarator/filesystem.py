@@ -25,8 +25,8 @@ from ginjarator import paths
 
 
 def _is_relative_to_any(
-    path: pathlib.Path,
-    others: Collection[pathlib.Path],
+    path: pathlib.PurePath,
+    others: Collection[pathlib.PurePath],
 ) -> bool:
     return any(path.is_relative_to(other) for other in others)
 
@@ -53,9 +53,9 @@ class Mode(abc.ABC):
     def __init__(self) -> None:
         self._configured = False
         self._minimal_config: config.Minimal | None = None
-        self._resolve: Callable[[pathlib.Path | str], pathlib.Path] | None = (
-            None
-        )
+        self._resolve: (
+            Callable[[paths.Filesystem | str], pathlib.Path] | None
+        ) = None
 
     def use_cache_to_configure(self) -> bool:
         """Whether the minimal config should be read from cache."""
@@ -65,7 +65,7 @@ class Mode(abc.ABC):
         self,
         *,
         minimal_config: config.Minimal,
-        resolve: Callable[[pathlib.Path | str], pathlib.Path],
+        resolve: Callable[[paths.Filesystem | str], pathlib.Path],
     ) -> None:
         """Configures the mode for use by a Filesystem."""
         if self._configured:
@@ -81,7 +81,7 @@ class Mode(abc.ABC):
             raise ValueError("Not configured yet.")
         return self._minimal_config
 
-    def resolve(self, path: pathlib.Path | str) -> pathlib.Path:
+    def resolve(self, path: paths.Filesystem | str) -> pathlib.Path:
         """Filesystem.resolve()."""
         if self._resolve is None:
             raise ValueError("Not configured yet.")
@@ -140,7 +140,7 @@ class InternalMode(Mode):
             (
                 self.resolve(paths.CONFIG),
                 self.resolve(paths.INTERNAL),
-                *self.minimal_config.source_paths,
+                *map(self.resolve, self.minimal_config.source_paths),
             ),
         )
 
@@ -184,7 +184,7 @@ class NinjaMode(Mode):
             path,
             (
                 self.resolve(paths.CONFIG),
-                *self.minimal_config.source_paths,
+                *map(self.resolve, self.minimal_config.source_paths),
             ),
         )
 
@@ -218,8 +218,8 @@ class ScanMode(Mode):
             (
                 self.resolve(paths.CONFIG),
                 self.resolve(paths.MINIMAL_CONFIG),
-                *self.minimal_config.source_paths,
-                *self.minimal_config.build_paths,
+                *map(self.resolve, self.minimal_config.source_paths),
+                *map(self.resolve, self.minimal_config.build_paths),
             ),
         )
 
@@ -231,13 +231,16 @@ class ScanMode(Mode):
             (
                 self.resolve(paths.CONFIG),
                 self.resolve(paths.MINIMAL_CONFIG),
-                *self.minimal_config.source_paths,
+                *map(self.resolve, self.minimal_config.source_paths),
             ),
         )
 
     @override
     def check_output(self, path: pathlib.Path) -> None:
-        _check_allowed(path, self.minimal_config.build_paths)
+        _check_allowed(
+            path,
+            tuple(map(self.resolve, self.minimal_config.build_paths)),
+        )
 
     @override
     def check_write(self, path: pathlib.Path) -> bool:
@@ -332,14 +335,7 @@ class Filesystem:
                 )
             )
         self._mode.configure(
-            minimal_config=config.Minimal(
-                source_paths=frozenset(
-                    map(self.resolve, minimal_config.source_paths)
-                ),
-                build_paths=frozenset(
-                    map(self.resolve, minimal_config.build_paths)
-                ),
-            ),
+            minimal_config=minimal_config,
             resolve=self.resolve,
         )
 
@@ -359,33 +355,37 @@ class Filesystem:
         """Files that were written, or will be written in another pass."""
         return frozenset(self._outputs)
 
-    def resolve(self, path: pathlib.Path | str) -> pathlib.Path:
+    def resolve(self, path: paths.Filesystem | str) -> pathlib.Path:
         """Returns the canonical full path."""
         return (self._root / path).resolve()
 
-    def add_dependency(self, path: pathlib.Path | str) -> None:
+    def add_dependency(
+        self, path: pathlib.Path | paths.Filesystem | str
+    ) -> None:
         """Adds a dependency."""
-        full_path = self.resolve(path)
+        full_path = (
+            path if isinstance(path, pathlib.Path) else self.resolve(path)
+        )
         self._mode.check_dependency(full_path)
         self._dependencies.add(full_path)
 
     @overload
     def read_text(
         self,
-        path: pathlib.Path | str,
+        path: paths.Filesystem | str,
         *,
         defer_ok: Literal[False],
     ) -> str: ...
     @overload
     def read_text(
         self,
-        path: pathlib.Path | str,
+        path: paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> str | None: ...
     def read_text(
         self,
-        path: pathlib.Path | str,
+        path: paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> str | None:
@@ -416,7 +416,7 @@ class Filesystem:
             tomllib.loads(self.read_text(paths.CONFIG, defer_ok=False))
         )
 
-    def add_output(self, path: pathlib.Path | str) -> None:
+    def add_output(self, path: paths.Filesystem | str) -> None:
         """Adds an output."""
         full_path = self.resolve(path)
         self._mode.check_output(full_path)
@@ -424,7 +424,7 @@ class Filesystem:
 
     def write_text(
         self,
-        path: pathlib.Path | str,
+        path: paths.Filesystem | str,
         contents: str,
         *,
         preserve_mtime: bool = True,
@@ -466,7 +466,7 @@ class Filesystem:
 
     def write_text_macro(
         self,
-        path: pathlib.Path | str,
+        path: paths.Filesystem | str,
         caller: Callable[[], str],
     ) -> str:
         """Calls write_text() with a jinja macro, and returns the text.

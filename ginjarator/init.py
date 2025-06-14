@@ -25,9 +25,14 @@ from ginjarator import template
 
 _NINJA_REQUIRED_VERSION = "1.10"
 
+# It seems that build.ninja needs to be a relative path for ninja to reload it
+# properly when it changes, so this is used instead of fs.resolve() or other
+# things that use fs.resolve(), like fs.add_output().
+_NINJA_ENTRYPOINT = pathlib.Path(paths.NINJA_ENTRYPOINT)
+
 
 def _main_ninja_for_template(
-    template_name: pathlib.Path,
+    template_name: paths.Filesystem,
     *,
     fs: filesystem.Filesystem,
 ) -> str:
@@ -48,9 +53,9 @@ def _main_ninja_for_template(
                 scan $
                 {build.to_ninja(path)} $
                 || $
-                {build.to_ninja(paths.NINJA_ENTRYPOINT)}
+                {build.to_ninja(_NINJA_ENTRYPOINT)}
             depfile = {build.to_ninja(depfile_path)}
-            template = {build.to_ninja(template_name, escape_shell=True)}
+            template = {build.to_ninja(str(template_name), escape_shell=True)}
 
         build $
                 {build.to_ninja(render_stamp_path)} $
@@ -63,7 +68,7 @@ def _main_ninja_for_template(
                 {build.to_ninja(dyndep_path)} $
                 {build.to_ninja(scan_done_stamp_path)}
             dyndep = {build.to_ninja(dyndep_path)}
-            template = {build.to_ninja(template_name, escape_shell=True)}
+            template = {build.to_ninja(str(template_name), escape_shell=True)}
         """
     )
 
@@ -112,18 +117,15 @@ def _main_ninja(
 
     depfile_path = fs.resolve(paths.NINJA_ENTRYPOINT_DEPFILE)
     fs.write_text(
-        depfile_path,
-        build.to_depfile({paths.NINJA_ENTRYPOINT: fs.dependencies}),
+        paths.NINJA_ENTRYPOINT_DEPFILE,
+        build.to_depfile({_NINJA_ENTRYPOINT: fs.dependencies}),
     )
 
-    # It seems that build.ninja needs to be a relative path for ninja to reload
-    # it properly when it changes, so this hardcodes it rather than using
-    # add_output() first.
     parts.append(
         textwrap.dedent(
             f"""\
             build $
-                    {build.to_ninja(paths.NINJA_ENTRYPOINT)} $
+                    {build.to_ninja(_NINJA_ENTRYPOINT)} $
                     {build.to_ninja(sorted(fs.outputs))} $
                     : $
                     init
@@ -174,10 +176,8 @@ def init(
     )
 
     for template_name in config_.ninja_templates:
-        template_ninja_path = fs.resolve(
-            paths.ninja_template_output(template_name)
-        )
-        subninjas.append(template_ninja_path)
+        template_ninja_path = paths.ninja_template_output(template_name)
+        subninjas.append(fs.resolve(template_ninja_path))
         subninjas_changed.append(
             fs.write_text(
                 template_ninja_path,
@@ -187,11 +187,10 @@ def init(
 
     # This has to be the last subninja, so that it can include the dependencies
     # and outputs added by previous subninjas.
-    main_ninja_path = fs.resolve(paths.NINJA_MAIN)
-    fs.add_output(main_ninja_path)
-    subninjas.append(main_ninja_path)
+    fs.add_output(paths.NINJA_MAIN)
+    subninjas.append(fs.resolve(paths.NINJA_MAIN))
     subninjas_changed.append(
-        fs.write_text(main_ninja_path, _main_ninja(fs=fs, config_=config_))
+        fs.write_text(paths.NINJA_MAIN, _main_ninja(fs=fs, config_=config_))
     )
 
     fs.write_text(

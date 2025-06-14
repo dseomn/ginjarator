@@ -19,6 +19,8 @@ import itertools
 import pathlib
 from typing import Any, override, Self
 
+from ginjarator import paths
+
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class Minimal:
@@ -28,15 +30,13 @@ class Minimal:
     be rebuilt if they change. To avoid rebuilding all templates when other
     fields change, these fields are split out from the main Config class.
 
-    All paths are relative to the config file.
-
     Attributes:
         source_paths: Source files/directories.
         build_paths: Build files/directories.
     """
 
-    source_paths: Collection[pathlib.Path]
-    build_paths: Collection[pathlib.Path]
+    source_paths: Collection[paths.Filesystem]
+    build_paths: Collection[paths.Filesystem]
 
     def __post_init__(self) -> None:
         for source_path, build_path in itertools.product(
@@ -64,12 +64,12 @@ class Minimal:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
             source_paths=tuple(
-                map(pathlib.Path, sorted(set(raw.get("source_paths", ["src"]))))
+                paths.Filesystem(pathlib.PurePath(path))
+                for path in sorted(set(raw.get("source_paths", ["src"])))
             ),
             build_paths=tuple(
-                map(
-                    pathlib.Path, sorted(set(raw.get("build_paths", ["build"])))
-                )
+                paths.Filesystem(pathlib.PurePath(path))
+                for path in sorted(set(raw.get("build_paths", ["build"])))
             ),
             **kwargs,
         )
@@ -86,15 +86,13 @@ class Minimal:
 class Config(Minimal):
     """Config.
 
-    All paths are relative to the config file.
-
     Attributes:
         ninja_templates: Templates to render to ninja code.
         templates: Normal templates to render.
     """
 
-    ninja_templates: Sequence[pathlib.Path]
-    templates: Sequence[pathlib.Path]
+    ninja_templates: Sequence[paths.Filesystem]
+    templates: Sequence[paths.Filesystem]
 
     @classmethod
     @override
@@ -104,8 +102,12 @@ class Config(Minimal):
         return super().parse(
             raw_copy,
             ninja_templates=tuple(
-                map(pathlib.Path, raw_copy.pop("ninja_templates", []))
+                paths.Filesystem(pathlib.PurePath(path))
+                for path in raw_copy.pop("ninja_templates", [])
             ),
-            templates=tuple(map(pathlib.Path, raw_copy.pop("templates", []))),
+            templates=tuple(
+                paths.Filesystem(pathlib.PurePath(path))
+                for path in raw_copy.pop("templates", [])
+            ),
             **kwargs,
         )

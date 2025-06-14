@@ -14,14 +14,20 @@
 """Path types, constants, and functions."""
 
 import pathlib
+from typing import NewType
 import urllib.parse
 
-CONFIG = pathlib.Path("ginjarator.toml")
+# The type of path that filesystem.Filesystem uses in its API. If it's relative,
+# then it's relative to the Filesystem's root (and therefore build.ninja), not
+# necessarily the current directory.
+Filesystem = NewType("Filesystem", pathlib.PurePath)
 
-INTERNAL = pathlib.Path(".ginjarator")
+CONFIG = Filesystem(pathlib.PurePath("ginjarator.toml"))
+
+INTERNAL = Filesystem(pathlib.PurePath(".ginjarator"))
 
 
-def internal(*components: str) -> pathlib.Path:
+def internal(*components: str) -> Filesystem:
     """Returns a path for internal state.
 
     Args:
@@ -34,35 +40,33 @@ def internal(*components: str) -> pathlib.Path:
     )
 
 
-NINJA_ENTRYPOINT = pathlib.Path("build.ninja")
+NINJA_ENTRYPOINT = Filesystem(pathlib.PurePath("build.ninja"))
 NINJA_ENTRYPOINT_DEPFILE = internal("build.ninja.d")
 NINJA_MAIN = internal("main.ninja")
 MINIMAL_CONFIG = internal("config", "minimal.json")
 SCAN_DONE_STAMP = internal("scan-done.stamp")
 
 
-def ninja_template_output(template_name: pathlib.Path | str) -> pathlib.Path:
+def ninja_template_output(template_name: Filesystem | str) -> Filesystem:
     """Returns the output path for a ninja template."""
     return internal("ninja_templates", f"{template_name}.ninja")
 
 
-def template_state(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_state(template_name: Filesystem | str) -> Filesystem:
     """Returns the path for template state."""
     return internal("templates", f"{template_name}.json")
 
 
-def template_depfile(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_depfile(template_name: Filesystem | str) -> Filesystem:
     """Returns the path for a template's depfile."""
     return internal("templates", f"{template_name}.d")
 
 
-def template_dyndep(template_name: pathlib.Path | str) -> pathlib.Path:
+def template_dyndep(template_name: Filesystem | str) -> Filesystem:
     """Returns the path for a template's dyndep file."""
     return internal("templates", f"{template_name}.dd")
 
 
-def template_render_stamp(
-    template_name: pathlib.Path | str,
-) -> pathlib.Path:
+def template_render_stamp(template_name: Filesystem | str) -> Filesystem:
     """Returns the path for a template's render stamp."""
     return internal("templates", f"{template_name}.render-stamp")
