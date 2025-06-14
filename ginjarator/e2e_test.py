@@ -596,3 +596,49 @@ def test_template_dependency_changes_creator() -> None:
 
     assert pathlib.Path("build/in-1").read_text() == "contents-3-in"
     assert pathlib.Path("build/out-1").read_text() == "contents-3-out"
+
+
+def test_error_when_path_removed_from_config() -> None:
+    pathlib.Path("other_src").mkdir()
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            source_paths = [
+                "src",
+                "other_src",
+            ]
+            templates = [
+                "src/template.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/template.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text(
+                "build/out",
+                ginjarator.fs.read_text("other_src/in").replace("in", "out"),
+            ) %}
+            """
+        )
+    )
+    pathlib.Path("other_src/in").write_text("contents-in")
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            source_paths = [
+                "src",
+            ]
+            templates = [
+                "src/template.jinja",
+            ]
+            """
+        )
+    )
+
+    _run(("ninja",), expect_success=False)
