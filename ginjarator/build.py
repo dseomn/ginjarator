@@ -61,7 +61,7 @@ def _depfile_escape(path: str | paths.Filesystem) -> str:
     # the right syntax either and they might change it in the future. This code
     # just disallows potentially problematic characters as much as possible.
     if any(
-        c.isspace() or not c.isprintable() or c in ':;#"\\' for c in str(path)
+        c.isspace() or not c.isprintable() or c in ':;#"\\$' for c in str(path)
     ):
         raise NotImplementedError(
             f"Unsupported characters in path {str(path)!r}."
