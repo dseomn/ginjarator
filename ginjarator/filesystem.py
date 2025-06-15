@@ -51,7 +51,6 @@ class Mode(abc.ABC):
     """How the filesystem can be accessed."""
 
     def __init__(self) -> None:
-        self._configured = False
         self._minimal_config: config.Minimal | None = None
 
     def use_cache_to_configure(self) -> bool:
@@ -64,9 +63,8 @@ class Mode(abc.ABC):
         minimal_config: config.Minimal,
     ) -> None:
         """Configures the mode for use by a Filesystem."""
-        if self._configured:
+        if self._minimal_config is not None:
             raise ValueError("Already configured.")
-        self._configured = True
         self._minimal_config = minimal_config
 
     @property
