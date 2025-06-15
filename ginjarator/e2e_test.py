@@ -15,6 +15,7 @@
 
 from collections.abc import Generator, Sequence
 import contextlib
+import logging
 import pathlib
 import subprocess
 import textwrap
@@ -28,6 +29,7 @@ pytestmark = pytest.mark.e2e
 
 @pytest.fixture(autouse=True)
 def _root_path(tmp_path: pathlib.Path) -> Generator[None, None, None]:
+    logging.debug("root_path = %r", tmp_path)
     with contextlib.chdir(tmp_path):
         pathlib.Path("ginjarator.toml").write_text("")
         pathlib.Path("src").mkdir()

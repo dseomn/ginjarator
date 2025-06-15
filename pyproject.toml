@@ -63,6 +63,7 @@ addopts = """\
   --numprocesses=auto \
   --dist=worksteal \
   """
+log_level = "DEBUG"
 markers = [
   "e2e: end-to-end tests that use the installed program",
 ]
