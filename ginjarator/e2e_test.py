@@ -107,8 +107,16 @@ def _run_ninja() -> None:
     _assert_ninja_noop()
 
 
+def _run_clean() -> None:
+    _run((*_NINJA_ARGS, "-t", "clean"))
+
+
 def test_empty_project() -> None:
     _run_init()
+    _run_ninja()
+
+    _run_clean()
+
     _run_ninja()
 
 
@@ -135,6 +143,14 @@ def test_ninja_template() -> None:
     )
 
     _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "contents"
+
+    _run_clean()
+
+    assert not pathlib.Path("build/out").exists()
+
     _run_ninja()
 
     assert pathlib.Path("build/out").read_text() == "contents"
@@ -277,6 +293,16 @@ def test_simple() -> None:
     assert pathlib.Path("build/out-1").read_text() == "contents-1"
     assert pathlib.Path("build/out-2").read_text() == "contents-2"
 
+    _run_clean()
+
+    assert not pathlib.Path("build/out-1").exists()
+    assert not pathlib.Path("build/out-2").exists()
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out-1").read_text() == "contents-1"
+    assert pathlib.Path("build/out-2").read_text() == "contents-2"
+
 
 def test_template_dependencies() -> None:
     pathlib.Path("ginjarator.toml").write_text(
@@ -313,6 +339,16 @@ def test_template_dependencies() -> None:
     )
 
     _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/out-1").read_text() == "contents-1"
+    assert pathlib.Path("build/out-2").read_text() == "contents-2"
+
+    _run_clean()
+
+    assert not pathlib.Path("build/out-1").exists()
+    assert not pathlib.Path("build/out-2").exists()
+
     _run_ninja()
 
     assert pathlib.Path("build/out-1").read_text() == "contents-1"
