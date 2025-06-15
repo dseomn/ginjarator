@@ -44,7 +44,6 @@ def _main_ninja_for_template(template_name: paths.Filesystem) -> str:
                 || $
                 {build.to_ninja(paths.NINJA_ENTRYPOINT)}
             depfile = {build.to_ninja(depfile_path)}
-            template = {build.to_ninja(str(template_name), escape_shell=True)}
 
         build $
                 {build.to_ninja(render_stamp_path)} $
@@ -57,7 +56,6 @@ def _main_ninja_for_template(template_name: paths.Filesystem) -> str:
                 {build.to_ninja(dyndep_path)} $
                 {build.to_ninja(paths.SCAN_DONE_STAMP)}
             dyndep = {build.to_ninja(dyndep_path)}
-            template = {build.to_ninja(str(template_name), escape_shell=True)}
         """
     )
 
@@ -82,13 +80,13 @@ def _main_ninja(
                 restat = true
 
             rule scan
-                command = ginjarator scan $template
-                description = SCAN $template
+                command = ginjarator scan $in
+                description = SCAN $in
                 restat = true
 
             rule render
-                command = ginjarator render $template
-                description = RENDER $template
+                command = ginjarator render $in
+                description = RENDER $in
                 restat = true
 
             rule touch
