@@ -21,6 +21,8 @@ import textwrap
 
 import pytest
 
+_NINJA_ARGS = ("ninja", "-d", "explain")
+
 pytestmark = pytest.mark.e2e
 
 
@@ -53,9 +55,9 @@ def _run_init() -> None:
 
 
 def _run_ninja() -> None:
-    _run(("ninja",))
-    _run(("ninja", "-t", "cleandead"))
-    _run(("ninja", "-t", "missingdeps"))
+    _run(_NINJA_ARGS)
+    _run((*_NINJA_ARGS, "-t", "cleandead"))
+    _run((*_NINJA_ARGS, "-t", "missingdeps"))
 
 
 def test_empty_project() -> None:
@@ -297,7 +299,7 @@ def test_template_missing_dependency() -> None:
     )
 
     _run_init()
-    _run(("ninja",), expect_success=False)
+    _run(_NINJA_ARGS, expect_success=False)
 
 
 def test_conflicting_writes() -> None:
@@ -327,7 +329,7 @@ def test_conflicting_writes() -> None:
     )
 
     _run_init()
-    _run(("ninja",), expect_success=False)
+    _run(_NINJA_ARGS, expect_success=False)
 
 
 def test_add_template() -> None:
@@ -625,4 +627,4 @@ def test_error_when_path_removed_from_config() -> None:
         )
     )
 
-    _run(("ninja",), expect_success=False)
+    _run(_NINJA_ARGS, expect_success=False)
