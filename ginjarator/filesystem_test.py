@@ -14,7 +14,7 @@
 
 # pylint: disable=missing-module-docstring
 
-from collections.abc import Callable
+import copy
 import json
 import pathlib
 import textwrap
@@ -58,89 +58,80 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
 def test_mode_configure_twice() -> None:
     mode = filesystem.InternalMode()
     minimal_config = config.Minimal(source_paths=(), build_paths=())
-    mode.configure(minimal_config=minimal_config, resolve=pathlib.Path)
+    mode.configure(minimal_config=minimal_config)
 
     with pytest.raises(ValueError, match="Already configured"):
-        mode.configure(minimal_config=minimal_config, resolve=pathlib.Path)
+        mode.configure(minimal_config=minimal_config)
 
 
 def test_mode_no_configure() -> None:
     with pytest.raises(ValueError, match="Not configured"):
         filesystem.InternalMode().minimal_config  # pylint: disable=expression-not-assigned
-    with pytest.raises(ValueError, match="Not configured"):
-        filesystem.InternalMode().resolve("")
 
 
 @pytest.mark.parametrize(
     "mode,config_path",
     (
-        (lambda _: filesystem.InternalMode(), paths.CONFIG),
-        (lambda _: filesystem.NinjaMode(), paths.CONFIG),
-        (lambda _: filesystem.ScanMode(), paths.MINIMAL_CONFIG),
+        (filesystem.InternalMode(), paths.CONFIG),
+        (filesystem.NinjaMode(), paths.CONFIG),
+        (filesystem.ScanMode(), paths.MINIMAL_CONFIG),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-            ),
+            filesystem.RenderMode(dependencies=(paths.MINIMAL_CONFIG,)),
             paths.MINIMAL_CONFIG,
         ),
     ),
 )
 def test_init_depends_on_config(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     config_path: paths.Filesystem,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
-    assert set(fs.dependencies) == {root_path / config_path}
-
-
-def test_filesystem_resolve(root_path: pathlib.Path) -> None:
-    fs = filesystem.Filesystem(root_path)
-    assert fs.resolve("foo") == root_path / "foo"
+    fs = filesystem.Filesystem(root_path, mode=mode)
+    assert set(fs.dependencies) == {config_path}
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "relative"),
-        (lambda _: filesystem.InternalMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "relative"),
-        (lambda _: filesystem.NinjaMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "build/some-file"),
-        (lambda _: filesystem.ScanMode(), "relative"),
-        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (filesystem.InternalMode(), "relative"),
+        (filesystem.InternalMode(), "/absolute"),
+        (filesystem.NinjaMode(), "relative"),
+        (filesystem.NinjaMode(), "/absolute"),
+        (filesystem.NinjaMode(), "build/some-file"),
+        (filesystem.ScanMode(), "relative"),
+        (filesystem.ScanMode(), "/absolute"),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "relative",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("relative"),
                 ),
             ),
             "relative",
         ),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    pathlib.Path("/absolute"),
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("/absolute"),
                 ),
             ),
             "/absolute",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
             ),
             "src/some-file",
         ),
     ),
 )
 def test_filesystem_add_dependency_not_allowed(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=mode)
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_dependency(path)
@@ -149,24 +140,24 @@ def test_filesystem_add_dependency_not_allowed(
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "src/some-file"),
-        (lambda _: filesystem.NinjaMode(), "src/some-file"),
-        (lambda _: filesystem.ScanMode(), "src/some-file"),
-        (lambda _: filesystem.ScanMode(), "build/some-file"),
+        (filesystem.InternalMode(), "src/some-file"),
+        (filesystem.NinjaMode(), "src/some-file"),
+        (filesystem.ScanMode(), "src/some-file"),
+        (filesystem.ScanMode(), "build/some-file"),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "src/some-file",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("src/some-file"),
                 ),
             ),
             "src/some-file",
         ),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "build/some-file",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("build/some-file"),
                 ),
             ),
             "build/some-file",
@@ -174,48 +165,48 @@ def test_filesystem_add_dependency_not_allowed(
     ),
 )
 def test_filesystem_add_dependency(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=mode)
 
     fs.add_dependency(path)
 
-    assert set(fs.dependencies) >= {root_path / path}
+    assert set(fs.dependencies) >= {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "relative"),
-        (lambda _: filesystem.InternalMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "relative"),
-        (lambda _: filesystem.NinjaMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "build/some-file"),
-        (lambda _: filesystem.ScanMode(), "relative"),
-        (lambda _: filesystem.ScanMode(), "/absolute"),
+        (filesystem.InternalMode(), "relative"),
+        (filesystem.InternalMode(), "/absolute"),
+        (filesystem.NinjaMode(), "relative"),
+        (filesystem.NinjaMode(), "/absolute"),
+        (filesystem.NinjaMode(), "build/some-file"),
+        (filesystem.ScanMode(), "relative"),
+        (filesystem.ScanMode(), "/absolute"),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "relative",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("relative"),
                 ),
             ),
             "relative",
         ),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    pathlib.Path("/absolute"),
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("/absolute"),
                 ),
             ),
             "/absolute",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
             ),
             "src/some-file",
         ),
@@ -223,12 +214,12 @@ def test_filesystem_add_dependency(
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_not_allowed(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.read_text(path, defer_ok=defer_ok)
@@ -251,29 +242,29 @@ def test_filesystem_read_text_returns_none(root_path: pathlib.Path) -> None:
     full_path.write_text("stale contents from previous build")
 
     assert fs.read_text(path, defer_ok=True) is None
-    assert set(fs.dependencies) >= {full_path}
+    assert set(fs.dependencies) >= {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "src/some-file"),
-        (lambda _: filesystem.NinjaMode(), "src/some-file"),
-        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (filesystem.InternalMode(), "src/some-file"),
+        (filesystem.NinjaMode(), "src/some-file"),
+        (filesystem.ScanMode(), "src/some-file"),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "src/some-file",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("src/some-file"),
                 ),
             ),
             "src/some-file",
         ),
         (
-            lambda root: filesystem.RenderMode(
+            filesystem.RenderMode(
                 dependencies=(
-                    root / paths.MINIMAL_CONFIG,
-                    root / "build/some-file",
+                    paths.MINIMAL_CONFIG,
+                    paths.Filesystem("build/some-file"),
                 ),
             ),
             "build/some-file",
@@ -282,19 +273,19 @@ def test_filesystem_read_text_returns_none(root_path: pathlib.Path) -> None:
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_read_text_returns_contents(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
     contents = "the contents of the file"
     full_path = root_path / path
     full_path.parent.mkdir(parents=True, exist_ok=True)
     full_path.write_text(contents)
 
     assert fs.read_text(path, defer_ok=defer_ok) == contents
-    assert set(fs.dependencies) >= {full_path}
+    assert set(fs.dependencies) >= {paths.Filesystem(path)}
 
 
 def test_filesystem_read_config(root_path: pathlib.Path) -> None:
@@ -302,58 +293,58 @@ def test_filesystem_read_config(root_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(root_path)
 
     assert tuple(fs.read_config().source_paths) == (paths.Filesystem("foo"),)
-    assert set(fs.dependencies) >= {root_path / "ginjarator.toml"}
+    assert set(fs.dependencies) >= {paths.Filesystem("ginjarator.toml")}
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "relative"),
-        (lambda _: filesystem.InternalMode(), "/absolute"),
-        (lambda _: filesystem.InternalMode(), "src/some-file"),
-        (lambda _: filesystem.InternalMode(), "build/some-file"),
-        (lambda _: filesystem.NinjaMode(), "relative"),
-        (lambda _: filesystem.NinjaMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "src/some-file"),
-        (lambda _: filesystem.NinjaMode(), "build/some-file"),
-        (lambda _: filesystem.ScanMode(), "relative"),
-        (lambda _: filesystem.ScanMode(), "/absolute"),
-        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (filesystem.InternalMode(), "relative"),
+        (filesystem.InternalMode(), "/absolute"),
+        (filesystem.InternalMode(), "src/some-file"),
+        (filesystem.InternalMode(), "build/some-file"),
+        (filesystem.NinjaMode(), "relative"),
+        (filesystem.NinjaMode(), "/absolute"),
+        (filesystem.NinjaMode(), "src/some-file"),
+        (filesystem.NinjaMode(), "build/some-file"),
+        (filesystem.ScanMode(), "relative"),
+        (filesystem.ScanMode(), "/absolute"),
+        (filesystem.ScanMode(), "src/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "relative",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("relative"),),
             ),
             "relative",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(pathlib.Path("/absolute"),),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("/absolute"),),
             ),
             "/absolute",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "src/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("src/some-file"),),
             ),
             "src/some-file",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
             ),
             "build/some-file",
         ),
     ),
 )
 def test_filesystem_add_output_not_allowed(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=mode)
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.add_output(path)
@@ -362,67 +353,67 @@ def test_filesystem_add_output_not_allowed(
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
-        (lambda _: filesystem.ScanMode(), "build/some-file"),
+        (filesystem.InternalMode(), ".ginjarator/some-file"),
+        (filesystem.ScanMode(), "build/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "build/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("build/some-file"),),
             ),
             "build/some-file",
         ),
     ),
 )
 def test_filesystem_add_output(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=mode)
 
     fs.add_output(path)
 
-    assert set(fs.outputs) == {root_path / path}
+    assert set(fs.outputs) == {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), "relative"),
-        (lambda _: filesystem.InternalMode(), "/absolute"),
-        (lambda _: filesystem.InternalMode(), "src/some-file"),
-        (lambda _: filesystem.InternalMode(), "build/some-file"),
-        (lambda _: filesystem.NinjaMode(), "relative"),
-        (lambda _: filesystem.NinjaMode(), "/absolute"),
-        (lambda _: filesystem.NinjaMode(), "src/some-file"),
-        (lambda _: filesystem.NinjaMode(), "build/some-file"),
-        (lambda _: filesystem.ScanMode(), "relative"),
-        (lambda _: filesystem.ScanMode(), "/absolute"),
-        (lambda _: filesystem.ScanMode(), "src/some-file"),
+        (filesystem.InternalMode(), "relative"),
+        (filesystem.InternalMode(), "/absolute"),
+        (filesystem.InternalMode(), "src/some-file"),
+        (filesystem.InternalMode(), "build/some-file"),
+        (filesystem.NinjaMode(), "relative"),
+        (filesystem.NinjaMode(), "/absolute"),
+        (filesystem.NinjaMode(), "src/some-file"),
+        (filesystem.NinjaMode(), "build/some-file"),
+        (filesystem.ScanMode(), "relative"),
+        (filesystem.ScanMode(), "/absolute"),
+        (filesystem.ScanMode(), "src/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "relative",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("relative"),),
             ),
             "relative",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(pathlib.Path("/absolute"),),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("/absolute"),),
             ),
             "/absolute",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "src/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("src/some-file"),),
             ),
             "src/some-file",
         ),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
             ),
             "build/some-file",
         ),
@@ -430,12 +421,12 @@ def test_filesystem_add_output(
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_not_allowed(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
         fs.write_text(path, path, defer_ok=defer_ok)
@@ -459,18 +450,18 @@ def test_filesystem_write_text_deferred(root_path: pathlib.Path) -> None:
     changed = fs.write_text(path, contents, defer_ok=True)
 
     assert not full_path.exists()
-    assert set(fs.outputs) == {full_path}
+    assert set(fs.outputs) == {paths.Filesystem(path)}
     assert not changed
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (filesystem.InternalMode(), ".ginjarator/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "build/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("build/some-file"),),
             ),
             "build/some-file",
         ),
@@ -478,12 +469,12 @@ def test_filesystem_write_text_deferred(root_path: pathlib.Path) -> None:
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_noop(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
     contents = "the contents of the file"
     full_path = root_path / path
     full_path.parent.mkdir(parents=True, exist_ok=True)
@@ -500,18 +491,18 @@ def test_filesystem_write_text_noop(
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime == original_mtime
-    assert set(fs.outputs) == {full_path}
+    assert set(fs.outputs) == {paths.Filesystem(path)}
     assert not changed
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (filesystem.InternalMode(), ".ginjarator/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "build/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("build/some-file"),),
             ),
             "build/some-file",
         ),
@@ -519,30 +510,30 @@ def test_filesystem_write_text_noop(
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_writes_new_file(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
     contents = "the contents of the file"
     full_path = root_path / path
 
     changed = fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
-    assert set(fs.outputs) == {full_path}
+    assert set(fs.outputs) == {paths.Filesystem(path)}
     assert changed
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
-        (lambda _: filesystem.InternalMode(), ".ginjarator/some-file"),
+        (filesystem.InternalMode(), ".ginjarator/some-file"),
         (
-            lambda root: filesystem.RenderMode(
-                dependencies=(root / paths.MINIMAL_CONFIG,),
-                outputs=(root / "build/some-file",),
+            filesystem.RenderMode(
+                dependencies=(paths.MINIMAL_CONFIG,),
+                outputs=(paths.Filesystem("build/some-file"),),
             ),
             "build/some-file",
         ),
@@ -558,14 +549,14 @@ def test_filesystem_write_text_writes_new_file(
 )
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_updates_file(
-    mode: Callable[[pathlib.Path], filesystem.Mode],
+    mode: filesystem.Mode,
     path: str,
     contents: str,
     preserve_mtime: bool,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode(root_path))
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
     full_path = root_path / path
     full_path.parent.mkdir(parents=True, exist_ok=True)
     full_path.write_text("original contents of the file")
@@ -581,7 +572,7 @@ def test_filesystem_write_text_updates_file(
 
     assert full_path.read_text() == contents
     assert full_path.stat().st_mtime > original_mtime
-    assert set(fs.outputs) == {full_path}
+    assert set(fs.outputs) == {paths.Filesystem(path)}
     assert changed
 
 
@@ -601,8 +592,8 @@ def test_filesystem_write_text_macro_writes(root_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(
         root_path,
         mode=filesystem.RenderMode(
-            dependencies=(root_path / paths.MINIMAL_CONFIG,),
-            outputs=(root_path / "build/some-file",),
+            dependencies=(paths.MINIMAL_CONFIG,),
+            outputs=(paths.Filesystem("build/some-file"),),
         ),
     )
     contents = "the contents of the file"

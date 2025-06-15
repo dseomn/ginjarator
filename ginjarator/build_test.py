@@ -14,13 +14,13 @@
 
 # pylint: disable=missing-module-docstring
 
-import pathlib
 import textwrap
 from typing import Any
 
 import pytest
 
 from ginjarator import build
+from ginjarator import paths
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ from ginjarator import build
     (
         ("foo: $bar", True, "'foo$:$ $$bar'"),
         ("foo: $bar", False, "foo$:$ $$bar"),
-        (pathlib.Path("foo"), False, "foo"),
+        (paths.Filesystem("foo"), False, "foo"),
         (["foo", "bar"], False, "foo bar"),
         (("foo", "bar"), False, "foo bar"),
         ({"foo", "bar"}, False, "bar foo"),

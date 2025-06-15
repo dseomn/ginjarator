@@ -32,8 +32,8 @@ def _is_relative_to_any(
 
 
 def _check_allowed(
-    path: pathlib.Path,
-    allowed_paths: Collection[pathlib.Path],
+    path: paths.Filesystem,
+    allowed_paths: Collection[paths.Filesystem],
 ) -> None:
     # NOTE: This is meant to prevent mistakes that could make builds less
     # reliable. It is not meant to be, and isn't, secure.
@@ -43,7 +43,7 @@ def _check_allowed(
         )
 
 
-def _forbid_all(path: pathlib.Path) -> Never:
+def _forbid_all(path: paths.Filesystem) -> Never:
     raise ValueError(f"{str(path)!r} is not in allowed paths: {()}")
 
 
@@ -53,9 +53,6 @@ class Mode(abc.ABC):
     def __init__(self) -> None:
         self._configured = False
         self._minimal_config: config.Minimal | None = None
-        self._resolve: (
-            Callable[[paths.Filesystem | str], pathlib.Path] | None
-        ) = None
 
     def use_cache_to_configure(self) -> bool:
         """Whether the minimal config should be read from cache."""
@@ -65,14 +62,12 @@ class Mode(abc.ABC):
         self,
         *,
         minimal_config: config.Minimal,
-        resolve: Callable[[paths.Filesystem | str], pathlib.Path],
     ) -> None:
         """Configures the mode for use by a Filesystem."""
         if self._configured:
             raise ValueError("Already configured.")
         self._configured = True
         self._minimal_config = minimal_config
-        self._resolve = resolve
 
     @property
     def minimal_config(self) -> config.Minimal:
@@ -81,18 +76,12 @@ class Mode(abc.ABC):
             raise ValueError("Not configured yet.")
         return self._minimal_config
 
-    def resolve(self, path: paths.Filesystem | str) -> pathlib.Path:
-        """Filesystem.resolve()."""
-        if self._resolve is None:
-            raise ValueError("Not configured yet.")
-        return self._resolve(path)
-
     @abc.abstractmethod
-    def check_dependency(self, path: pathlib.Path) -> None:
+    def check_dependency(self, path: paths.Filesystem) -> None:
         """Raises an exception if path can't be added as a dependency."""
 
     @abc.abstractmethod
-    def check_read(self, path: pathlib.Path) -> bool:
+    def check_read(self, path: paths.Filesystem) -> bool:
         """Checks if the path can be read.
 
         Args:
@@ -107,11 +96,11 @@ class Mode(abc.ABC):
         """
 
     @abc.abstractmethod
-    def check_output(self, path: pathlib.Path) -> None:
+    def check_output(self, path: paths.Filesystem) -> None:
         """Raises an exception if path can't be added as an output."""
 
     @abc.abstractmethod
-    def check_write(self, path: pathlib.Path) -> bool:
+    def check_write(self, path: paths.Filesystem) -> bool:
         """Checks if the path can be written.
 
         Args:
@@ -134,33 +123,33 @@ class InternalMode(Mode):
         return False
 
     @override
-    def check_dependency(self, path: pathlib.Path) -> None:
+    def check_dependency(self, path: paths.Filesystem) -> None:
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG),
-                self.resolve(paths.INTERNAL),
-                *map(self.resolve, self.minimal_config.source_paths),
+                paths.CONFIG,
+                paths.INTERNAL,
+                *self.minimal_config.source_paths,
             ),
         )
 
     @override
-    def check_read(self, path: pathlib.Path) -> bool:
+    def check_read(self, path: paths.Filesystem) -> bool:
         self.check_dependency(path)
         return True
 
     @override
-    def check_output(self, path: pathlib.Path) -> None:
+    def check_output(self, path: paths.Filesystem) -> None:
         _check_allowed(
             path,
             (
-                self.resolve(paths.INTERNAL),
-                self.resolve(paths.NINJA_ENTRYPOINT),
+                paths.INTERNAL,
+                paths.NINJA_ENTRYPOINT,
             ),
         )
 
     @override
-    def check_write(self, path: pathlib.Path) -> bool:
+    def check_write(self, path: paths.Filesystem) -> bool:
         self.check_output(path)
         return True
 
@@ -179,26 +168,26 @@ class NinjaMode(Mode):
         return False
 
     @override
-    def check_dependency(self, path: pathlib.Path) -> None:
+    def check_dependency(self, path: paths.Filesystem) -> None:
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG),
-                *map(self.resolve, self.minimal_config.source_paths),
+                paths.CONFIG,
+                *self.minimal_config.source_paths,
             ),
         )
 
     @override
-    def check_read(self, path: pathlib.Path) -> bool:
+    def check_read(self, path: paths.Filesystem) -> bool:
         self.check_dependency(path)
         return True
 
     @override
-    def check_output(self, path: pathlib.Path) -> None:
+    def check_output(self, path: paths.Filesystem) -> None:
         _forbid_all(path)
 
     @override
-    def check_write(self, path: pathlib.Path) -> bool:
+    def check_write(self, path: paths.Filesystem) -> bool:
         _forbid_all(path)
 
 
@@ -212,38 +201,35 @@ class ScanMode(Mode):
     """
 
     @override
-    def check_dependency(self, path: pathlib.Path) -> None:
+    def check_dependency(self, path: paths.Filesystem) -> None:
         _check_allowed(
             path,
             (
-                self.resolve(paths.CONFIG),
-                self.resolve(paths.MINIMAL_CONFIG),
-                *map(self.resolve, self.minimal_config.source_paths),
-                *map(self.resolve, self.minimal_config.build_paths),
+                paths.CONFIG,
+                paths.MINIMAL_CONFIG,
+                *self.minimal_config.source_paths,
+                *self.minimal_config.build_paths,
             ),
         )
 
     @override
-    def check_read(self, path: pathlib.Path) -> bool:
+    def check_read(self, path: paths.Filesystem) -> bool:
         self.check_dependency(path)
         return _is_relative_to_any(
             path,
             (
-                self.resolve(paths.CONFIG),
-                self.resolve(paths.MINIMAL_CONFIG),
-                *map(self.resolve, self.minimal_config.source_paths),
+                paths.CONFIG,
+                paths.MINIMAL_CONFIG,
+                *self.minimal_config.source_paths,
             ),
         )
 
     @override
-    def check_output(self, path: pathlib.Path) -> None:
-        _check_allowed(
-            path,
-            tuple(map(self.resolve, self.minimal_config.build_paths)),
-        )
+    def check_output(self, path: paths.Filesystem) -> None:
+        _check_allowed(path, self.minimal_config.build_paths)
 
     @override
-    def check_write(self, path: pathlib.Path) -> bool:
+    def check_write(self, path: paths.Filesystem) -> bool:
         self.check_output(path)
         return False
 
@@ -260,8 +246,8 @@ class RenderMode(Mode):
     def __init__(
         self,
         *,
-        dependencies: Collection[pathlib.Path] = (),
-        outputs: Collection[pathlib.Path] = (),
+        dependencies: Collection[paths.Filesystem] = (),
+        outputs: Collection[paths.Filesystem] = (),
     ) -> None:
         """Initializer.
 
@@ -280,28 +266,32 @@ class RenderMode(Mode):
         self._scan_mode.configure(*args, **kwargs)
 
     @override
-    def check_dependency(self, path: pathlib.Path) -> None:
+    def check_dependency(self, path: paths.Filesystem) -> None:
         self._scan_mode.check_dependency(path)
         _check_allowed(path, self._dependencies)
 
     @override
-    def check_read(self, path: pathlib.Path) -> bool:
+    def check_read(self, path: paths.Filesystem) -> bool:
         self.check_dependency(path)
         return True
 
     @override
-    def check_output(self, path: pathlib.Path) -> None:
+    def check_output(self, path: paths.Filesystem) -> None:
         self._scan_mode.check_output(path)
         _check_allowed(path, self._outputs)
 
     @override
-    def check_write(self, path: pathlib.Path) -> bool:
+    def check_write(self, path: paths.Filesystem) -> bool:
         self.check_output(path)
         return True
 
 
 class Filesystem:
-    """Interface to the filesystem."""
+    """Interface to the filesystem.
+
+    Attributes:
+        root: Top-level path of the project.
+    """
 
     def __init__(
         self,
@@ -316,7 +306,7 @@ class Filesystem:
             mode: How the filesystem can be accessed, or None to use
                 InternalMode.
         """
-        self._root = root
+        self.root = root
         self._mode = InternalMode() if mode is None else mode
 
         # This has to use pathlib.Path.read_text() instead of self.read_text()
@@ -325,49 +315,38 @@ class Filesystem:
         if self._mode.use_cache_to_configure():
             minimal_config_loaded_from = paths.MINIMAL_CONFIG
             minimal_config = config.Minimal.parse(
-                json.loads(self.resolve(minimal_config_loaded_from).read_text())
+                json.loads((self.root / minimal_config_loaded_from).read_text())
             )
         else:
             minimal_config_loaded_from = paths.CONFIG
             minimal_config = config.Config.parse(
                 tomllib.loads(
-                    self.resolve(minimal_config_loaded_from).read_text()
+                    (self.root / minimal_config_loaded_from).read_text()
                 )
             )
-        self._mode.configure(
-            minimal_config=minimal_config,
-            resolve=self.resolve,
-        )
+        self._mode.configure(minimal_config=minimal_config)
 
-        self._dependencies = set[pathlib.Path]()
-        self._outputs = set[pathlib.Path]()
+        self._dependencies = set[paths.Filesystem]()
+        self._outputs = set[paths.Filesystem]()
 
         # This has to be after everything is initialized.
         self.add_dependency(minimal_config_loaded_from)
 
     @property
-    def dependencies(self) -> Collection[pathlib.Path]:
+    def dependencies(self) -> Collection[paths.Filesystem]:
         """Files that were read, or will be read in another pass."""
         return frozenset(self._dependencies)
 
     @property
-    def outputs(self) -> Collection[pathlib.Path]:
+    def outputs(self) -> Collection[paths.Filesystem]:
         """Files that were written, or will be written in another pass."""
         return frozenset(self._outputs)
 
-    def resolve(self, path: paths.Filesystem | str) -> pathlib.Path:
-        """Returns the canonical full path."""
-        return (self._root / path).resolve()
-
-    def add_dependency(
-        self, path: pathlib.Path | paths.Filesystem | str
-    ) -> None:
+    def add_dependency(self, path: paths.Filesystem | str) -> None:
         """Adds a dependency."""
-        full_path = (
-            path if isinstance(path, pathlib.Path) else self.resolve(path)
-        )
-        self._mode.check_dependency(full_path)
-        self._dependencies.add(full_path)
+        path = paths.Filesystem(path)
+        self._mode.check_dependency(path)
+        self._dependencies.add(path)
 
     @overload
     def read_text(
@@ -397,18 +376,18 @@ class Filesystem:
                 dependency to read in another pass: If True, add the dependency
                 and return None; if False, raise an exception.
         """
-        full_path = self.resolve(path)
-        readable_now = self._mode.check_read(full_path)
+        path = paths.Filesystem(path)
+        readable_now = self._mode.check_read(path)
         if not readable_now and not defer_ok:
             raise ValueError(
                 f"{str(path)!r} can't be read in this pass and deferring to a "
                 "later pass is disabled."
             )
-        self._dependencies.add(full_path)
+        self._dependencies.add(path)
         if not readable_now:
             assert defer_ok
             return None
-        return full_path.read_text()
+        return (self.root / path).read_text()
 
     def read_config(self) -> config.Config:
         """Returns the config."""
@@ -418,9 +397,9 @@ class Filesystem:
 
     def add_output(self, path: paths.Filesystem | str) -> None:
         """Adds an output."""
-        full_path = self.resolve(path)
-        self._mode.check_output(full_path)
-        self._outputs.add(full_path)
+        path = paths.Filesystem(path)
+        self._mode.check_output(path)
+        self._outputs.add(path)
 
     def write_text(
         self,
@@ -444,14 +423,15 @@ class Filesystem:
         Returns:
             Whether the file or its metadata was modified or not.
         """
-        full_path = self.resolve(path)
-        writable_now = self._mode.check_write(full_path)
+        path = paths.Filesystem(path)
+        full_path = self.root / path
+        writable_now = self._mode.check_write(path)
         if not writable_now and not defer_ok:
             raise ValueError(
                 f"{str(path)!r} can't be written in this pass and deferring "
                 "to a later pass is disabled."
             )
-        self._outputs.add(full_path)
+        self._outputs.add(path)
         if not writable_now:
             assert defer_ok
             return False

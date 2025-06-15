@@ -13,9 +13,10 @@
 # limitations under the License.
 """Build system utilities."""
 
-import pathlib
 import shlex
 from typing import Any, Collection, Mapping
+
+from ginjarator import paths
 
 
 def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
@@ -36,7 +37,7 @@ def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
                     )
                 )
             )
-        case pathlib.Path():
+        case paths.Filesystem():
             return to_ninja(str(value), escape_shell=escape_shell)
         case list() | tuple():
             return " ".join(
@@ -50,7 +51,7 @@ def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
             )
 
 
-def _depfile_escape(path: str | pathlib.Path) -> str:
+def _depfile_escape(path: str | paths.Filesystem) -> str:
     # The syntax does not seem to be well documented in any one place. The
     # Target Rules section of
     # https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html
@@ -69,7 +70,9 @@ def _depfile_escape(path: str | pathlib.Path) -> str:
 
 
 def to_depfile(
-    dependency_map: Mapping[str | pathlib.Path, Collection[str | pathlib.Path]],
+    dependency_map: Mapping[
+        str | paths.Filesystem, Collection[str | paths.Filesystem]
+    ],
 ) -> str:
     """Returns depfile contents given a map from target to dependencies."""
     lines = []

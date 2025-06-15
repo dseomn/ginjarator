@@ -70,7 +70,7 @@ class _Loader(jinja2.BaseLoader):
             raise jinja2.TemplateNotFound(template) from e
         if contents is None:
             raise jinja2.TemplateNotFound(f"{template!r} is not built yet.")
-        return (contents, str(self._fs.resolve(template)), lambda: False)
+        return (contents, str(self._fs.root / template), lambda: False)
 
 
 def _render(api: Api, template_name: str) -> str:
@@ -92,10 +92,7 @@ def ninja(
 ) -> str:
     """Returns custom ninja from the given template."""
     api = Api(
-        fs=filesystem.Filesystem(
-            internal_fs.resolve("."),
-            mode=filesystem.NinjaMode(),
-        ),
+        fs=filesystem.Filesystem(internal_fs.root, mode=filesystem.NinjaMode()),
     )
     contents = _render(api, template_name)
     for dependency in api.fs.dependencies:
@@ -130,13 +127,9 @@ def scan(
     )
     internal_fs.write_text(
         paths.template_depfile(template_name),
-        build.to_depfile(
-            {internal_fs.resolve(state_path): api.fs.dependencies}
-        ),
+        build.to_depfile({state_path: api.fs.dependencies}),
     )
-    render_stamp_path = internal_fs.resolve(
-        paths.template_render_stamp(template_name)
-    )
+    render_stamp_path = paths.template_render_stamp(template_name)
     internal_fs.write_text(
         paths.template_dyndep(template_name),
         textwrap.dedent(
@@ -172,8 +165,10 @@ def render(
         fs=filesystem.Filesystem(
             root_path,
             mode=filesystem.RenderMode(
-                dependencies=tuple(map(pathlib.Path, state["dependencies"])),
-                outputs=tuple(map(pathlib.Path, state["outputs"])),
+                dependencies=tuple(
+                    map(paths.Filesystem, state["dependencies"])
+                ),
+                outputs=tuple(map(paths.Filesystem, state["outputs"])),
             ),
         ),
     )

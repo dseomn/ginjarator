@@ -73,7 +73,9 @@ def test_ninja(root_path: pathlib.Path) -> None:
     rendered = template.ninja("src/template.jinja", internal_fs=internal_fs)
 
     assert rendered == "contents"
-    assert set(internal_fs.dependencies) >= {root_path / "src/template.jinja"}
+    assert set(internal_fs.dependencies) >= {
+        paths.Filesystem("src/template.jinja"),
+    }
 
 
 def test_scan(root_path: pathlib.Path) -> None:
@@ -91,10 +93,10 @@ def test_scan(root_path: pathlib.Path) -> None:
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
         dependencies=[
-            str(root_path / ".ginjarator/config/minimal.json"),
-            str(root_path / "src/template.jinja"),
+            ".ginjarator/config/minimal.json",
+            "src/template.jinja",
         ],
-        outputs=[str(root_path / "build/output")],
+        outputs=["build/output"],
     )
     assert (root_path / paths.template_depfile("src/template.jinja")).exists()
     assert (root_path / paths.template_dyndep("src/template.jinja")).exists()
@@ -107,10 +109,10 @@ def test_render(root_path: pathlib.Path) -> None:
         json.dumps(
             dict(
                 dependencies=[
-                    str(root_path / ".ginjarator/config/minimal.json"),
-                    str(root_path / "src/template.jinja"),
+                    ".ginjarator/config/minimal.json",
+                    "src/template.jinja",
                 ],
-                outputs=[str(root_path / "build/output")],
+                outputs=["build/output"],
             )
         )
     )

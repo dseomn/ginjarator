@@ -80,11 +80,7 @@ def test_ninja_template() -> None:
             """\
             rule init
                 command = printf contents > $out
-            build $
-                    {{ ginjarator.to_ninja(
-                        ginjarator.fs.resolve("build/out")
-                    ) }}: $
-                    init
+            build build/out: init
             """
         )
     )
@@ -113,11 +109,7 @@ def test_add_ninja_template() -> None:
             """\
             rule write
                 command = printf contents > $out
-            build $
-                    {{ ginjarator.to_ninja(
-                        ginjarator.fs.resolve("build/out")
-                    ) }}: $
-                    write
+            build build/out: write
             """
         )
     )
@@ -142,11 +134,7 @@ def test_remove_ninja_template() -> None:
             """\
             rule write
                 command = printf contents > $out
-            build $
-                    {{ ginjarator.to_ninja(
-                        ginjarator.fs.resolve("build/out")
-                    ) }}: $
-                    write
+            build build/out: write
             """
         )
     )
@@ -189,11 +177,7 @@ def test_update_ninja_template_dependency() -> None:
             """\
             rule write
                 command = printf contents > $out
-            build $
-                    {{ ginjarator.to_ninja(
-                        ginjarator.fs.resolve("build/out")
-                    ) }}: $
-                    write
+            build build/out: write
             """
         )
     )
