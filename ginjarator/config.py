@@ -16,7 +16,6 @@
 from collections.abc import Collection, Sequence
 import dataclasses
 import itertools
-import pathlib
 from typing import Any, override, Self
 
 from ginjarator import paths
@@ -64,12 +63,16 @@ class Minimal:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
             source_paths=tuple(
-                paths.Filesystem(pathlib.PurePath(path))
-                for path in sorted(set(raw.get("source_paths", ["src"])))
+                map(
+                    paths.Filesystem,
+                    sorted(set(raw.get("source_paths", ["src"]))),
+                )
             ),
             build_paths=tuple(
-                paths.Filesystem(pathlib.PurePath(path))
-                for path in sorted(set(raw.get("build_paths", ["build"])))
+                map(
+                    paths.Filesystem,
+                    sorted(set(raw.get("build_paths", ["build"]))),
+                )
             ),
             **kwargs,
         )
@@ -102,12 +105,10 @@ class Config(Minimal):
         return super().parse(
             raw_copy,
             ninja_templates=tuple(
-                paths.Filesystem(pathlib.PurePath(path))
-                for path in raw_copy.pop("ninja_templates", [])
+                map(paths.Filesystem, raw_copy.pop("ninja_templates", []))
             ),
             templates=tuple(
-                paths.Filesystem(pathlib.PurePath(path))
-                for path in raw_copy.pop("templates", [])
+                map(paths.Filesystem, raw_copy.pop("templates", []))
             ),
             **kwargs,
         )

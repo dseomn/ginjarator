@@ -301,9 +301,7 @@ def test_filesystem_read_config(root_path: pathlib.Path) -> None:
     (root_path / "ginjarator.toml").write_text("source_paths = ['foo']")
     fs = filesystem.Filesystem(root_path)
 
-    assert tuple(fs.read_config().source_paths) == (
-        paths.Filesystem(pathlib.PurePath("foo")),
-    )
+    assert tuple(fs.read_config().source_paths) == (paths.Filesystem("foo"),)
     assert set(fs.dependencies) >= {root_path / "ginjarator.toml"}
 
 

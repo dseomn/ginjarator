@@ -14,7 +14,6 @@
 
 # pylint: disable=missing-module-docstring
 
-import pathlib
 from typing import Any
 
 import pytest
@@ -28,22 +27,22 @@ from ginjarator import paths
     (
         (
             dict(
-                source_paths=(paths.Filesystem(pathlib.PurePath("foo")),),
-                build_paths=(paths.Filesystem(pathlib.PurePath("foo")),),
+                source_paths=(paths.Filesystem("foo"),),
+                build_paths=(paths.Filesystem("foo"),),
             ),
             r"must not overlap",
         ),
         (
             dict(
-                source_paths=(paths.Filesystem(pathlib.PurePath("foo/bar")),),
-                build_paths=(paths.Filesystem(pathlib.PurePath("foo")),),
+                source_paths=(paths.Filesystem("foo/bar"),),
+                build_paths=(paths.Filesystem("foo"),),
             ),
             r"must not overlap",
         ),
         (
             dict(
-                source_paths=(paths.Filesystem(pathlib.PurePath("foo")),),
-                build_paths=(paths.Filesystem(pathlib.PurePath("foo/bar")),),
+                source_paths=(paths.Filesystem("foo"),),
+                build_paths=(paths.Filesystem("foo/bar"),),
             ),
             r"must not overlap",
         ),
@@ -70,8 +69,8 @@ def test_config_parse_error() -> None:
         (
             {},
             config.Config(
-                source_paths=(paths.Filesystem(pathlib.PurePath("src")),),
-                build_paths=(paths.Filesystem(pathlib.PurePath("build")),),
+                source_paths=(paths.Filesystem("src"),),
+                build_paths=(paths.Filesystem("build"),),
                 ninja_templates=(),
                 templates=(),
             ),
@@ -80,8 +79,8 @@ def test_config_parse_error() -> None:
                 build_paths=["build"],
             ),
             config.Minimal(
-                source_paths=(paths.Filesystem(pathlib.PurePath("src")),),
-                build_paths=(paths.Filesystem(pathlib.PurePath("build")),),
+                source_paths=(paths.Filesystem("src"),),
+                build_paths=(paths.Filesystem("build"),),
             ),
         ),
         (
@@ -93,20 +92,20 @@ def test_config_parse_error() -> None:
             ),
             config.Config(
                 source_paths=(
-                    paths.Filesystem(pathlib.PurePath("src1")),
-                    paths.Filesystem(pathlib.PurePath("src2")),
+                    paths.Filesystem("src1"),
+                    paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem(pathlib.PurePath("build1")),
-                    paths.Filesystem(pathlib.PurePath("build2")),
+                    paths.Filesystem("build1"),
+                    paths.Filesystem("build2"),
                 ),
                 ninja_templates=(
-                    paths.Filesystem(pathlib.PurePath("n1.jinja")),
-                    paths.Filesystem(pathlib.PurePath("n2.jinja")),
+                    paths.Filesystem("n1.jinja"),
+                    paths.Filesystem("n2.jinja"),
                 ),
                 templates=(
-                    paths.Filesystem(pathlib.PurePath("t1.jinja")),
-                    paths.Filesystem(pathlib.PurePath("t2.jinja")),
+                    paths.Filesystem("t1.jinja"),
+                    paths.Filesystem("t2.jinja"),
                 ),
             ),
             dict(
@@ -115,12 +114,12 @@ def test_config_parse_error() -> None:
             ),
             config.Minimal(
                 source_paths=(
-                    paths.Filesystem(pathlib.PurePath("src1")),
-                    paths.Filesystem(pathlib.PurePath("src2")),
+                    paths.Filesystem("src1"),
+                    paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem(pathlib.PurePath("build1")),
-                    paths.Filesystem(pathlib.PurePath("build2")),
+                    paths.Filesystem("build1"),
+                    paths.Filesystem("build2"),
                 ),
             ),
         ),
@@ -132,12 +131,12 @@ def test_config_parse_error() -> None:
             ),
             config.Config(
                 source_paths=(
-                    paths.Filesystem(pathlib.PurePath("src1")),
-                    paths.Filesystem(pathlib.PurePath("src2")),
+                    paths.Filesystem("src1"),
+                    paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem(pathlib.PurePath("build1")),
-                    paths.Filesystem(pathlib.PurePath("build2")),
+                    paths.Filesystem("build1"),
+                    paths.Filesystem("build2"),
                 ),
                 ninja_templates=(),
                 templates=(),
@@ -148,12 +147,12 @@ def test_config_parse_error() -> None:
             ),
             config.Minimal(
                 source_paths=(
-                    paths.Filesystem(pathlib.PurePath("src1")),
-                    paths.Filesystem(pathlib.PurePath("src2")),
+                    paths.Filesystem("src1"),
+                    paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem(pathlib.PurePath("build1")),
-                    paths.Filesystem(pathlib.PurePath("build2")),
+                    paths.Filesystem("build1"),
+                    paths.Filesystem("build2"),
                 ),
             ),
         ),

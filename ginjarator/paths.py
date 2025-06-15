@@ -14,17 +14,20 @@
 """Path types, constants, and functions."""
 
 import pathlib
-from typing import NewType
 import urllib.parse
 
-# The type of path that filesystem.Filesystem uses in its API. If it's relative,
-# then it's relative to the Filesystem's root (and therefore build.ninja), not
-# necessarily the current directory.
-Filesystem = NewType("Filesystem", pathlib.PurePath)
 
-CONFIG = Filesystem(pathlib.PurePath("ginjarator.toml"))
+class Filesystem(pathlib.PurePath):
+    """Type of path that filesystem.Filesystem uses in its API.
 
-INTERNAL = Filesystem(pathlib.PurePath(".ginjarator"))
+    If it's relative, then it's relative to the Filesystem's root (and therefore
+    build.ninja), not necessarily the current directory.
+    """
+
+
+CONFIG = Filesystem("ginjarator.toml")
+
+INTERNAL = Filesystem(".ginjarator")
 
 
 def internal(*components: str) -> Filesystem:
@@ -40,7 +43,7 @@ def internal(*components: str) -> Filesystem:
     )
 
 
-NINJA_ENTRYPOINT = Filesystem(pathlib.PurePath("build.ninja"))
+NINJA_ENTRYPOINT = Filesystem("build.ninja")
 NINJA_ENTRYPOINT_DEPFILE = internal("build.ninja.d")
 NINJA_MAIN = internal("main.ninja")
 MINIMAL_CONFIG = internal("config", "minimal.json")
