@@ -123,7 +123,6 @@ def test_to_depfile_ninja_requires_depfile_outputs_to_be_known(
     assert "unknown-kumquat" in result.stdout
 
 
-@pytest.mark.xfail(reason="'%' is escaped incorrectly")
 def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
     filenames_to_test = ("foo%bar",)
     (tmp_path / "input").write_text("kumquat")

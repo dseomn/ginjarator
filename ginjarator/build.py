@@ -66,7 +66,7 @@ def _depfile_escape(path: str | paths.Filesystem) -> str:
         raise NotImplementedError(
             f"Unsupported characters in path {str(path)!r}."
         )
-    return str(path).replace("%", "\\%")
+    return str(path)
 
 
 def to_depfile(
