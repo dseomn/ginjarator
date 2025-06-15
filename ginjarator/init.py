@@ -101,13 +101,20 @@ def _main_ninja(
 
     fs.write_text(
         paths.NINJA_ENTRYPOINT_DEPFILE,
-        build.to_depfile({paths.NINJA_ENTRYPOINT: fs.dependencies}),
+        build.to_depfile(
+            first_output=paths.NINJA_ENTRYPOINT,
+            dependencies=fs.dependencies,
+        ),
     )
 
     parts.append(
         textwrap.dedent(
             f"""\
-            build {build.to_ninja(sorted(fs.outputs))}: init
+            build $
+                    {build.to_ninja(paths.NINJA_ENTRYPOINT)} $
+                    {build.to_ninja(sorted(fs.outputs))} $
+                    : $
+                    init
                 depfile = {build.to_ninja(paths.NINJA_ENTRYPOINT_DEPFILE)}
 
             build $
@@ -167,7 +174,6 @@ def init(
     # This has to be the last subninja, so that it can include the dependencies
     # and outputs added by previous subninjas.
     fs.add_output(paths.NINJA_MAIN)
-    fs.add_output(paths.NINJA_ENTRYPOINT)
     subninjas.append(paths.NINJA_MAIN)
     subninjas_changed.append(
         fs.write_text(paths.NINJA_MAIN, _main_ninja(fs=fs, config_=config_))

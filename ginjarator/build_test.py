@@ -64,20 +64,17 @@ def test_to_ninja_error(value: Any) -> None:
 )
 def test_to_depfile_error(path: str) -> None:
     with pytest.raises(NotImplementedError, match="Unsupported characters"):
-        build.to_depfile({path: ("foo",)})
+        build.to_depfile(first_output=path, dependencies=("foo",))
 
 
 def test_to_depfile() -> None:
     assert build.to_depfile(
-        {
-            "t1": ("d1", "d2"),
-            "t2": ("d3",),
-        }
+        first_output="t1",
+        dependencies=("d1", "d2"),
     ) == textwrap.dedent(
         """\
         t1: d1
         t1: d2
-        t2: d3
         """
     )
 
@@ -92,11 +89,14 @@ def test_to_depfile_ninja_requires_depfile_outputs_to_be_known(
     (tmp_path / "depfile").write_text(
         "\n".join(
             (
-                # The first output in the depfile must be the same as the first
-                # output in the build statement, otherwise ninja gives a warning
-                # but continues.
-                build.to_depfile({"output": ("input",)}),
-                build.to_depfile({"unknown-kumquat": ("input",)}),
+                build.to_depfile(
+                    first_output="output",
+                    dependencies=("input",),
+                ),
+                build.to_depfile(
+                    first_output="unknown-kumquat",
+                    dependencies=("input",),
+                ),
             )
         )
     )
@@ -129,12 +129,15 @@ def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
     (tmp_path / "depfile").write_text(
         "\n".join(
             (
-                # The first output in the depfile must be the same as the first
-                # output in the build statement, otherwise ninja gives a warning
-                # but continues.
-                build.to_depfile({"output": ("input",)}),
+                build.to_depfile(
+                    first_output="output",
+                    dependencies=("input",),
+                ),
                 *(
-                    build.to_depfile({filename: ("input",)})
+                    build.to_depfile(
+                        first_output=filename,
+                        dependencies=("input",),
+                    )
                     for filename in filenames_to_test
                 ),
             )

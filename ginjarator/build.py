@@ -14,7 +14,7 @@
 """Build system utilities."""
 
 import shlex
-from typing import Any, Collection, Mapping
+from typing import Any, Collection
 
 from ginjarator import paths
 
@@ -70,15 +70,20 @@ def _depfile_escape(path: str | paths.Filesystem) -> str:
 
 
 def to_depfile(
-    dependency_map: Mapping[
-        str | paths.Filesystem, Collection[str | paths.Filesystem]
-    ],
+    *,
+    first_output: str | paths.Filesystem,
+    dependencies: Collection[str | paths.Filesystem],
 ) -> str:
-    """Returns depfile contents given a map from target to dependencies."""
-    lines = []
-    for target, dependencies in dependency_map.items():
-        for dependency in dependencies:
-            lines.append(
-                f"{_depfile_escape(target)}: {_depfile_escape(dependency)}\n"
-            )
-    return "".join(lines)
+    """Returns depfile contents.
+
+    Args:
+        first_output: The ninja build statement's first output. From
+            https://github.com/ninja-build/ninja/blob/1b52e21f4b0183ec5689da830b86300398dffc2a/src/graph.cc#L681-L690
+            it looks like this has to also be the first output in the depfile,
+            or ninja will ignore the entire depfile.
+        dependencies: The build statement's dependencies.
+    """
+    return "".join(
+        f"{_depfile_escape(first_output)}: {_depfile_escape(dependency)}\n"
+        for dependency in dependencies
+    )
