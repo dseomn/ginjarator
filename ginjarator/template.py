@@ -112,13 +112,16 @@ def scan(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_name)
+    scan_dependencies = api.fs.dependencies
+    render_dependencies = api.fs.dependencies | api.fs.deferred_dependencies
+    render_outputs = api.fs.outputs | api.fs.deferred_outputs
     state_path = paths.template_state(template_name)
     internal_fs.write_text(
         state_path,
         json.dumps(
             dict(
-                dependencies=sorted(map(str, api.fs.dependencies)),
-                outputs=sorted(map(str, api.fs.outputs)),
+                dependencies=sorted(map(str, render_dependencies)),
+                outputs=sorted(map(str, render_outputs)),
             ),
             ensure_ascii=False,
             indent=2,
@@ -127,7 +130,7 @@ def scan(
     )
     internal_fs.write_text(
         paths.template_depfile(template_name),
-        build.to_depfile({state_path: api.fs.dependencies}),
+        build.to_depfile({state_path: scan_dependencies}),
     )
     render_stamp_path = paths.template_render_stamp(template_name)
     internal_fs.write_text(
@@ -138,11 +141,11 @@ def scan(
             build $
                     {build.to_ninja(render_stamp_path)} $
                     | $
-                    {build.to_ninja(api.fs.outputs)} $
+                    {build.to_ninja(render_outputs)} $
                     : $
                     dyndep $
                     | $
-                    {build.to_ninja(api.fs.dependencies)}
+                    {build.to_ninja(render_dependencies)}
             """
         ),
     )

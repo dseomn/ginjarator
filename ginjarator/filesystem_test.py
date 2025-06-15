@@ -126,15 +126,17 @@ def test_init_depends_on_config(
         ),
     ),
 )
+@pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_add_dependency_not_allowed(
     mode: filesystem.Mode,
     path: str,
+    defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode)
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.add_dependency(path)
+        fs.add_dependency(path, defer_ok=defer_ok)
 
 
 @pytest.mark.parametrize(
@@ -143,7 +145,6 @@ def test_filesystem_add_dependency_not_allowed(
         (filesystem.InternalMode(), "src/some-file"),
         (filesystem.NinjaMode(), "src/some-file"),
         (filesystem.ScanMode(), "src/some-file"),
-        (filesystem.ScanMode(), "build/some-file"),
         (
             filesystem.RenderMode(
                 dependencies=(
@@ -164,16 +165,27 @@ def test_filesystem_add_dependency_not_allowed(
         ),
     ),
 )
-def test_filesystem_add_dependency(
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_add_dependency_not_deferred(
     mode: filesystem.Mode,
     path: str,
     root_path: pathlib.Path,
+    defer_ok: bool,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode)
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
-    fs.add_dependency(path)
+    fs.add_dependency(path, defer_ok=defer_ok)
 
     assert set(fs.dependencies) >= {paths.Filesystem(path)}
+
+
+def test_filesystem_add_dependency_deferred(root_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(root_path, mode=filesystem.ScanMode())
+    path = "build/some-file"
+
+    fs.add_dependency(path, defer_ok=True)
+
+    assert set(fs.deferred_dependencies) == {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
@@ -242,7 +254,7 @@ def test_filesystem_read_text_returns_none(root_path: pathlib.Path) -> None:
     full_path.write_text("stale contents from previous build")
 
     assert fs.read_text(path, defer_ok=True) is None
-    assert set(fs.dependencies) >= {paths.Filesystem(path)}
+    assert set(fs.deferred_dependencies) == {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
@@ -339,22 +351,23 @@ def test_filesystem_read_config(root_path: pathlib.Path) -> None:
         ),
     ),
 )
+@pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_add_output_not_allowed(
     mode: filesystem.Mode,
     path: str,
+    defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode)
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
     with pytest.raises(ValueError, match="not in allowed paths"):
-        fs.add_output(path)
+        fs.add_output(path, defer_ok=defer_ok)
 
 
 @pytest.mark.parametrize(
     "mode,path",
     (
         (filesystem.InternalMode(), ".ginjarator/some-file"),
-        (filesystem.ScanMode(), "build/some-file"),
         (
             filesystem.RenderMode(
                 dependencies=(paths.MINIMAL_CONFIG,),
@@ -364,16 +377,27 @@ def test_filesystem_add_output_not_allowed(
         ),
     ),
 )
-def test_filesystem_add_output(
+@pytest.mark.parametrize("defer_ok", (False, True))
+def test_filesystem_add_output_not_deferred(
     mode: filesystem.Mode,
     path: str,
+    defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
-    fs = filesystem.Filesystem(root_path, mode=mode)
+    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
-    fs.add_output(path)
+    fs.add_output(path, defer_ok=defer_ok)
 
     assert set(fs.outputs) == {paths.Filesystem(path)}
+
+
+def test_filesystem_add_output_deferred(root_path: pathlib.Path) -> None:
+    fs = filesystem.Filesystem(root_path, mode=filesystem.ScanMode())
+    path = "build/some-file"
+
+    fs.add_output(path, defer_ok=True)
+
+    assert set(fs.deferred_outputs) == {paths.Filesystem(path)}
 
 
 @pytest.mark.parametrize(
@@ -450,7 +474,7 @@ def test_filesystem_write_text_deferred(root_path: pathlib.Path) -> None:
     changed = fs.write_text(path, contents, defer_ok=True)
 
     assert not full_path.exists()
-    assert set(fs.outputs) == {paths.Filesystem(path)}
+    assert set(fs.deferred_outputs) == {paths.Filesystem(path)}
     assert not changed
 
 

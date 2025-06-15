@@ -14,7 +14,7 @@
 """Tools for reading source files and writing build outputs."""
 
 import abc
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Set
 import json
 import pathlib
 import tomllib
@@ -292,26 +292,54 @@ class Filesystem:
         self._mode.configure(minimal_config=minimal_config)
 
         self._dependencies = set[paths.Filesystem]()
+        self._deferred_dependencies = set[paths.Filesystem]()
         self._outputs = set[paths.Filesystem]()
+        self._deferred_outputs = set[paths.Filesystem]()
 
         # This has to be after everything is initialized.
-        self.add_dependency(minimal_config_loaded_from)
+        self.add_dependency(minimal_config_loaded_from, defer_ok=False)
 
     @property
-    def dependencies(self) -> Collection[paths.Filesystem]:
-        """Files that were read, or will be read in another pass."""
+    def dependencies(self) -> Set[paths.Filesystem]:
+        """Files that were read."""
         return frozenset(self._dependencies)
 
     @property
-    def outputs(self) -> Collection[paths.Filesystem]:
-        """Files that were written, or will be written in another pass."""
+    def deferred_dependencies(self) -> Set[paths.Filesystem]:
+        """Files that were deferred to be read in another pass."""
+        return frozenset(self._deferred_dependencies)
+
+    @property
+    def outputs(self) -> Set[paths.Filesystem]:
+        """Files that were written."""
         return frozenset(self._outputs)
 
-    def add_dependency(self, path: paths.Filesystem | str) -> None:
+    @property
+    def deferred_outputs(self) -> Set[paths.Filesystem]:
+        """Files that were deferred to be written in another pass."""
+        return frozenset(self._deferred_outputs)
+
+    def _add_dependency(
+        self,
+        path: paths.Filesystem,
+        *,
+        defer_ok: bool,
+    ) -> bool:
+        if self._mode.check_read(path, defer_ok=defer_ok):
+            self._dependencies.add(path)
+            return True
+        else:
+            self._deferred_dependencies.add(path)
+            return False
+
+    def add_dependency(
+        self,
+        path: paths.Filesystem | str,
+        *,
+        defer_ok: bool = True,
+    ) -> None:
         """Adds a dependency."""
-        path = paths.Filesystem(path)
-        self._mode.check_read(path, defer_ok=True)
-        self._dependencies.add(path)
+        self._add_dependency(paths.Filesystem(path), defer_ok=defer_ok)
 
     @overload
     def read_text(
@@ -341,10 +369,7 @@ class Filesystem:
                 dependency to read in another pass: If True, add the dependency
                 and return None; if False, raise an exception.
         """
-        path = paths.Filesystem(path)
-        readable_now = self._mode.check_read(path, defer_ok=defer_ok)
-        self._dependencies.add(path)
-        if not readable_now:
+        if not self._add_dependency(paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
             return None
         return (self.root / path).read_text()
@@ -355,11 +380,27 @@ class Filesystem:
             tomllib.loads(self.read_text(paths.CONFIG, defer_ok=False))
         )
 
-    def add_output(self, path: paths.Filesystem | str) -> None:
+    def _add_output(
+        self,
+        path: paths.Filesystem,
+        *,
+        defer_ok: bool,
+    ) -> bool:
+        if self._mode.check_write(path, defer_ok=defer_ok):
+            self._outputs.add(path)
+            return True
+        else:
+            self._deferred_outputs.add(path)
+            return False
+
+    def add_output(
+        self,
+        path: paths.Filesystem | str,
+        *,
+        defer_ok: bool = True,
+    ) -> None:
         """Adds an output."""
-        path = paths.Filesystem(path)
-        self._mode.check_write(path, defer_ok=True)
-        self._outputs.add(path)
+        self._add_output(paths.Filesystem(path), defer_ok=defer_ok)
 
     def write_text(
         self,
@@ -383,13 +424,10 @@ class Filesystem:
         Returns:
             Whether the file or its metadata was modified or not.
         """
-        path = paths.Filesystem(path)
-        full_path = self.root / path
-        writable_now = self._mode.check_write(path, defer_ok=defer_ok)
-        self._outputs.add(path)
-        if not writable_now:
+        if not self._add_output(paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
             return False
+        full_path = self.root / path
         try:
             if preserve_mtime and contents == full_path.read_text():
                 return False
