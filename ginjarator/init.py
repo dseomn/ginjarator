@@ -107,10 +107,7 @@ def _main_ninja(
     parts.append(
         textwrap.dedent(
             f"""\
-            build $
-                    {build.to_ninja(sorted(fs.outputs))} $
-                    : $
-                    init
+            build {build.to_ninja(sorted(fs.outputs))}: init
                 depfile = {build.to_ninja(paths.NINJA_ENTRYPOINT_DEPFILE)}
 
             build $
