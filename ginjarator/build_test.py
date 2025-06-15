@@ -14,6 +14,8 @@
 
 # pylint: disable=missing-module-docstring
 
+import pathlib
+import subprocess
 import textwrap
 from typing import Any
 
@@ -69,12 +71,95 @@ def test_to_depfile() -> None:
     assert build.to_depfile(
         {
             "t1": ("d1", "d2"),
-            "t2": ("d%2f3",),
+            "t2": ("d3",),
         }
     ) == textwrap.dedent(
         """\
         t1: d1
         t1: d2
-        t2: d\\%2f3
+        t2: d3
         """
     )
+
+
+def test_to_depfile_ninja_requires_depfile_outputs_to_be_known(
+    tmp_path: pathlib.Path,
+) -> None:
+    # This test isn't important to build.py, but
+    # test_to_depfile_escaping_works_with_ninja() below relies on this behavior
+    # of ninja to test that the depfile outputs are escaped correctly.
+    (tmp_path / "input").write_text("")
+    (tmp_path / "depfile").write_text(
+        "\n".join(
+            (
+                # The first output in the depfile must be the same as the first
+                # output in the build statement, otherwise ninja gives a warning
+                # but continues.
+                build.to_depfile({"output": ("input",)}),
+                build.to_depfile({"unknown-kumquat": ("input",)}),
+            )
+        )
+    )
+    (tmp_path / "build.ninja").write_text(
+        textwrap.dedent(
+            """\
+            rule copy
+                command = cp -f $in $out
+                depfile = depfile
+            build output: copy input
+            """
+        )
+    )
+
+    result = subprocess.run(
+        ("ninja", "-C", str(tmp_path), "-d", "explain"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        text=True,
+    )
+    returncode = result.returncode
+    assert returncode != 0, result.stdout
+    assert "unknown-kumquat" in result.stdout
+
+
+@pytest.mark.xfail(reason="'%' is escaped incorrectly")
+def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
+    filenames_to_test = ("foo%bar",)
+    (tmp_path / "input").write_text("kumquat")
+    (tmp_path / "depfile").write_text(
+        "\n".join(
+            (
+                # The first output in the depfile must be the same as the first
+                # output in the build statement, otherwise ninja gives a warning
+                # but continues.
+                build.to_depfile({"output": ("input",)}),
+                *(
+                    build.to_depfile({filename: ("input",)})
+                    for filename in filenames_to_test
+                ),
+            )
+        )
+    )
+    (tmp_path / "build.ninja").write_text(
+        textwrap.dedent(
+            f"""\
+            rule copy
+                command = for f in $out; do cp -f $in "$$f" || exit $$?; done
+                depfile = depfile
+            build output {build.to_ninja(filenames_to_test)}: copy input
+            """
+        )
+    )
+
+    result = subprocess.run(
+        ("ninja", "-C", str(tmp_path), "-d", "explain"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        text=True,
+    )
+    returncode = result.returncode
+    assert returncode == 0, result.stdout
+    for filename in filenames_to_test:
+        assert (tmp_path / filename).read_text() == "kumquat"
