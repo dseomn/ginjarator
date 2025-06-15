@@ -13,9 +13,10 @@
 # limitations under the License.
 """End-to-end tests on the installed program."""
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 import contextlib
 import logging
+import os
 import pathlib
 import subprocess
 import textwrap
@@ -37,29 +38,73 @@ def _root_path(tmp_path: pathlib.Path) -> Generator[None, None, None]:
         yield
 
 
-def _run(args: Sequence[str], *, expect_success: bool = True) -> None:
+def _run(
+    args: Sequence[str],
+    *,
+    env: Mapping[str, str] | None = None,
+    expect_success: bool = True,
+) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         check=False,
         text=True,
+        env=env,
     )
     returncode = result.returncode
     if expect_success:
         assert returncode == 0, result.stdout
     else:
         assert returncode != 0, result.stdout
+    return result
 
 
 def _run_init() -> None:
     _run(("ginjarator", "init"))
 
 
+def _assert_ninja_noop() -> None:
+    """Asserts that another ninja run does nothing."""
+    message_when_building = "no-op expected, but ninja is doing: "
+    result = _run(
+        (*_NINJA_ARGS, "--verbose"),
+        env={**os.environ, "NINJA_STATUS": message_when_building},
+    )
+    assert message_when_building not in result.stdout
+
+
+def test_assert_ninja_noop() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf contents > $out
+            build build/out: write
+            """
+        )
+    )
+    _run_init()
+
+    with pytest.raises(AssertionError, match=r"no-op expected"):
+        _assert_ninja_noop()
+
+
 def _run_ninja() -> None:
     _run(_NINJA_ARGS)
+    _assert_ninja_noop()
     _run((*_NINJA_ARGS, "-t", "cleandead"))
     _run((*_NINJA_ARGS, "-t", "missingdeps"))
+    _assert_ninja_noop()
 
 
 def test_empty_project() -> None:
