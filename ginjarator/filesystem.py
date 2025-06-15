@@ -18,7 +18,7 @@ from collections.abc import Callable, Collection
 import json
 import pathlib
 import tomllib
-from typing import Any, Literal, Never, overload, override
+from typing import Any, Literal, overload, override
 
 from ginjarator import config
 from ginjarator import paths
@@ -56,10 +56,6 @@ def _check_allowed(
         else:
             allowed = sorted(map(str, set(allowed_now)))
         raise ValueError(f"{str(path)!r} is not in allowed paths: {allowed}")
-
-
-def _forbid_all(path: paths.Filesystem) -> Never:
-    raise ValueError(f"{str(path)!r} is not in allowed paths: {[]}")
 
 
 class Mode(abc.ABC):
@@ -179,7 +175,7 @@ class NinjaMode(Mode):
 
     @override
     def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
-        _forbid_all(path)
+        return _check_allowed(path, defer_ok=False)
 
 
 class ScanMode(Mode):
