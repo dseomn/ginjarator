@@ -57,7 +57,11 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
 
 def test_mode_configure_twice() -> None:
     mode = filesystem.InternalMode()
-    minimal_config = config.Minimal(source_paths=(), build_paths=())
+    minimal_config = config.Minimal(
+        source_paths=(),
+        build_paths=(),
+        python_paths=(),
+    )
     mode.configure(minimal_config=minimal_config)
 
     with pytest.raises(ValueError, match="Already configured"):

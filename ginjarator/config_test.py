@@ -29,6 +29,7 @@ from ginjarator import paths
             dict(
                 source_paths=(paths.Filesystem("foo"),),
                 build_paths=(paths.Filesystem("foo"),),
+                python_paths=(),
             ),
             r"must not overlap",
         ),
@@ -36,6 +37,7 @@ from ginjarator import paths
             dict(
                 source_paths=(paths.Filesystem("foo/bar"),),
                 build_paths=(paths.Filesystem("foo"),),
+                python_paths=(),
             ),
             r"must not overlap",
         ),
@@ -43,8 +45,17 @@ from ginjarator import paths
             dict(
                 source_paths=(paths.Filesystem("foo"),),
                 build_paths=(paths.Filesystem("foo/bar"),),
+                python_paths=(),
             ),
             r"must not overlap",
+        ),
+        (
+            dict(
+                source_paths=(paths.Filesystem("foo/bar"),),
+                build_paths=(),
+                python_paths=(paths.Filesystem("foo"),),
+            ),
+            r"python_paths must all be within source_paths",
         ),
     ),
 )
@@ -71,22 +82,26 @@ def test_config_parse_error() -> None:
             config.Config(
                 source_paths=(paths.Filesystem("src"),),
                 build_paths=(paths.Filesystem("build"),),
+                python_paths=(),
                 ninja_templates=(),
                 templates=(),
             ),
             dict(
                 source_paths=["src"],
                 build_paths=["build"],
+                python_paths=[],
             ),
             config.Minimal(
                 source_paths=(paths.Filesystem("src"),),
                 build_paths=(paths.Filesystem("build"),),
+                python_paths=(),
             ),
         ),
         (
             dict(
                 source_paths=["src1", "src2"],
                 build_paths=["build1", "build2"],
+                python_paths=["src1/py", "src2/py"],
                 ninja_templates=["n1.jinja", "n2.jinja"],
                 templates=["t1.jinja", "t2.jinja"],
             ),
@@ -98,6 +113,10 @@ def test_config_parse_error() -> None:
                 build_paths=(
                     paths.Filesystem("build1"),
                     paths.Filesystem("build2"),
+                ),
+                python_paths=(
+                    paths.Filesystem("src1/py"),
+                    paths.Filesystem("src2/py"),
                 ),
                 ninja_templates=(
                     paths.Filesystem("n1.jinja"),
@@ -111,6 +130,7 @@ def test_config_parse_error() -> None:
             dict(
                 source_paths=["src1", "src2"],
                 build_paths=["build1", "build2"],
+                python_paths=["src1/py", "src2/py"],
             ),
             config.Minimal(
                 source_paths=(
@@ -121,6 +141,10 @@ def test_config_parse_error() -> None:
                     paths.Filesystem("build1"),
                     paths.Filesystem("build2"),
                 ),
+                python_paths=(
+                    paths.Filesystem("src1/py"),
+                    paths.Filesystem("src2/py"),
+                ),
             ),
         ),
         (
@@ -128,6 +152,7 @@ def test_config_parse_error() -> None:
             dict(
                 source_paths=["src2", "src2", "src1"],
                 build_paths=["build2", "build2", "build1"],
+                python_paths=[],
             ),
             config.Config(
                 source_paths=(
@@ -138,12 +163,14 @@ def test_config_parse_error() -> None:
                     paths.Filesystem("build1"),
                     paths.Filesystem("build2"),
                 ),
+                python_paths=(),
                 ninja_templates=(),
                 templates=(),
             ),
             dict(
                 source_paths=["src1", "src2"],
                 build_paths=["build1", "build2"],
+                python_paths=[],
             ),
             config.Minimal(
                 source_paths=(
@@ -154,6 +181,7 @@ def test_config_parse_error() -> None:
                     paths.Filesystem("build1"),
                     paths.Filesystem("build2"),
                 ),
+                python_paths=(),
             ),
         ),
     ),

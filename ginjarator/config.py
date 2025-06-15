@@ -32,10 +32,12 @@ class Minimal:
     Attributes:
         source_paths: Source files/directories.
         build_paths: Build files/directories.
+        python_paths: Directories to add to sys.path for finding python modules.
     """
 
     source_paths: Collection[paths.Filesystem]
     build_paths: Collection[paths.Filesystem]
+    python_paths: Sequence[paths.Filesystem]
 
     def __post_init__(self) -> None:
         for source_path, build_path in itertools.product(
@@ -46,6 +48,14 @@ class Minimal:
             ) or build_path.is_relative_to(source_path):
                 raise ValueError(
                     "source_paths and build_paths must not overlap."
+                )
+        for python_path in self.python_paths:
+            if not any(
+                python_path.is_relative_to(source_path)
+                for source_path in self.source_paths
+            ):
+                raise ValueError(
+                    "python_paths must all be within source_paths."
                 )
 
     @classmethod
@@ -59,6 +69,7 @@ class Minimal:
         if unexpected_keys := raw.keys() - {
             "source_paths",
             "build_paths",
+            "python_paths",
         }:
             raise ValueError(f"Unexpected keys: {list(unexpected_keys)}")
         return cls(
@@ -74,6 +85,9 @@ class Minimal:
                     sorted(set(raw.get("build_paths", ["build"]))),
                 )
             ),
+            python_paths=tuple(
+                map(paths.Filesystem, raw.get("python_paths", []))
+            ),
             **kwargs,
         )
 
@@ -82,6 +96,7 @@ class Minimal:
         return dict(
             source_paths=list(map(str, self.source_paths)),
             build_paths=list(map(str, self.build_paths)),
+            python_paths=list(map(str, self.python_paths)),
         )
 
 
