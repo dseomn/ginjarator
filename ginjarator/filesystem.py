@@ -33,18 +33,33 @@ def _is_relative_to_any(
 
 def _check_allowed(
     path: paths.Filesystem,
-    allowed_paths: Collection[paths.Filesystem],
-) -> None:
+    *,
+    allowed_now: Collection[paths.Filesystem] = (),
+    allowed_deferred: Collection[paths.Filesystem] = (),
+    defer_ok: bool,
+) -> bool:
     # NOTE: This is meant to prevent mistakes that could make builds less
     # reliable. It is not meant to be, and isn't, secure.
-    if not _is_relative_to_any(path, allowed_paths):
-        raise ValueError(
-            f"{str(path)!r} is not in allowed paths: {sorted(allowed_paths)}"
-        )
+    if _is_relative_to_any(path, allowed_now):
+        return True
+    elif _is_relative_to_any(path, allowed_deferred):
+        if defer_ok:
+            return False
+        else:
+            raise ValueError(
+                f"{str(path)!r} is not allowed in this pass and deferring to a "
+                "later pass is disabled."
+            )
+    else:
+        if defer_ok:
+            allowed = sorted(map(str, {*allowed_now, *allowed_deferred}))
+        else:
+            allowed = sorted(map(str, set(allowed_now)))
+        raise ValueError(f"{str(path)!r} is not in allowed paths: {allowed}")
 
 
 def _forbid_all(path: paths.Filesystem) -> Never:
-    raise ValueError(f"{str(path)!r} is not in allowed paths: {()}")
+    raise ValueError(f"{str(path)!r} is not in allowed paths: {[]}")
 
 
 class Mode(abc.ABC):
@@ -75,38 +90,32 @@ class Mode(abc.ABC):
         return self._minimal_config
 
     @abc.abstractmethod
-    def check_dependency(self, path: paths.Filesystem) -> None:
-        """Raises an exception if path can't be added as a dependency."""
-
-    @abc.abstractmethod
-    def check_read(self, path: paths.Filesystem) -> bool:
+    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
         """Checks if the path can be read.
 
         Args:
             path: Path to check.
+            defer_ok: Whether deferring to another pass is allowed.
 
         Returns:
             True if the path can be read now; False if the path can't be read
-            now but should be added as a dependency for later.
+            now but should be deferred to another pass.
 
         Raises:
             Exception: The path isn't allowed.
         """
 
     @abc.abstractmethod
-    def check_output(self, path: paths.Filesystem) -> None:
-        """Raises an exception if path can't be added as an output."""
-
-    @abc.abstractmethod
-    def check_write(self, path: paths.Filesystem) -> bool:
+    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
         """Checks if the path can be written.
 
         Args:
             path: Path to check.
+            defer_ok: Whether deferring to another pass is allowed.
 
         Returns:
             True if the path can be written now; False if the path can't be
-            written now but should be added as an output for later.
+            written now but should be deferred to another pass.
 
         Raises:
             Exception: The path isn't allowed.
@@ -121,42 +130,34 @@ class InternalMode(Mode):
         return False
 
     @override
-    def check_dependency(self, path: paths.Filesystem) -> None:
-        _check_allowed(
+    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        return _check_allowed(
             path,
-            (
+            allowed_now=(
                 paths.CONFIG,
                 paths.INTERNAL,
                 *self.minimal_config.source_paths,
             ),
+            defer_ok=False,
         )
 
     @override
-    def check_read(self, path: paths.Filesystem) -> bool:
-        self.check_dependency(path)
-        return True
-
-    @override
-    def check_output(self, path: paths.Filesystem) -> None:
-        _check_allowed(
+    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        return _check_allowed(
             path,
-            (
+            allowed_now=(
                 paths.INTERNAL,
                 paths.NINJA_ENTRYPOINT,
             ),
+            defer_ok=False,
         )
-
-    @override
-    def check_write(self, path: paths.Filesystem) -> bool:
-        self.check_output(path)
-        return True
 
 
 class NinjaMode(Mode):
     """Render a template containing custom ninja code.
 
-    * Any source path can be added as a dependency or read.
-    * No outputs or writing are allowed.
+    * Any source path can be read.
+    * No writing is allowed.
     """
 
     @override
@@ -166,79 +167,55 @@ class NinjaMode(Mode):
         return False
 
     @override
-    def check_dependency(self, path: paths.Filesystem) -> None:
-        _check_allowed(
+    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        return _check_allowed(
             path,
-            (
+            allowed_now=(
                 paths.CONFIG,
                 *self.minimal_config.source_paths,
             ),
+            defer_ok=False,
         )
 
     @override
-    def check_read(self, path: paths.Filesystem) -> bool:
-        self.check_dependency(path)
-        return True
-
-    @override
-    def check_output(self, path: paths.Filesystem) -> None:
-        _forbid_all(path)
-
-    @override
-    def check_write(self, path: paths.Filesystem) -> bool:
+    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
         _forbid_all(path)
 
 
 class ScanMode(Mode):
     """Scan templates to find their dependencies and outputs.
 
-    * Any source or build path can be added as a dependency.
-    * Any source path can be read, which implicitly adds it as a dependency.
-    * Any build path can be added as an output.
-    * No writing is allowed.
+    * Any source path can be read now.
+    * Any build path can be deferred to read or write later.
     """
 
     @override
-    def check_dependency(self, path: paths.Filesystem) -> None:
-        _check_allowed(
+    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        return _check_allowed(
             path,
-            (
-                paths.CONFIG,
-                paths.MINIMAL_CONFIG,
-                *self.minimal_config.source_paths,
-                *self.minimal_config.build_paths,
-            ),
-        )
-
-    @override
-    def check_read(self, path: paths.Filesystem) -> bool:
-        self.check_dependency(path)
-        return _is_relative_to_any(
-            path,
-            (
+            allowed_now=(
                 paths.CONFIG,
                 paths.MINIMAL_CONFIG,
                 *self.minimal_config.source_paths,
             ),
+            allowed_deferred=self.minimal_config.build_paths,
+            defer_ok=defer_ok,
         )
 
     @override
-    def check_output(self, path: paths.Filesystem) -> None:
-        _check_allowed(path, self.minimal_config.build_paths)
-
-    @override
-    def check_write(self, path: paths.Filesystem) -> bool:
-        self.check_output(path)
-        return False
+    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        return _check_allowed(
+            path,
+            allowed_deferred=self.minimal_config.build_paths,
+            defer_ok=defer_ok,
+        )
 
 
 class RenderMode(Mode):
     """Render templates, using the results from a scan pass.
 
-    * Any dependency from the scan pass can be marked as a dependency or
-      read.
-    * Any output from the scan pass can be marked as an output or written
-      to.
+    * Any (deferred) read from the scan pass can be read.
+    * Any deferred write from the scan pass can be written.
     """
 
     def __init__(
@@ -250,8 +227,8 @@ class RenderMode(Mode):
         """Initializer.
 
         Args:
-            dependencies: Dependencies from the scan pass.
-            outputs: Outputs from the scan pass.
+            dependencies: (Deferred) reads from the scan pass.
+            outputs: Deferred writes from the scan pass.
         """
         super().__init__()
         self._dependencies = dependencies
@@ -264,24 +241,18 @@ class RenderMode(Mode):
         self._scan_mode.configure(*args, **kwargs)
 
     @override
-    def check_dependency(self, path: paths.Filesystem) -> None:
-        self._scan_mode.check_dependency(path)
-        _check_allowed(path, self._dependencies)
+    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        self._scan_mode.check_read(path, defer_ok=True)
+        return _check_allowed(
+            path,
+            allowed_now=self._dependencies,
+            defer_ok=False,
+        )
 
     @override
-    def check_read(self, path: paths.Filesystem) -> bool:
-        self.check_dependency(path)
-        return True
-
-    @override
-    def check_output(self, path: paths.Filesystem) -> None:
-        self._scan_mode.check_output(path)
-        _check_allowed(path, self._outputs)
-
-    @override
-    def check_write(self, path: paths.Filesystem) -> bool:
-        self.check_output(path)
-        return True
+    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+        self._scan_mode.check_write(path, defer_ok=True)
+        return _check_allowed(path, allowed_now=self._outputs, defer_ok=False)
 
 
 class Filesystem:
@@ -343,7 +314,7 @@ class Filesystem:
     def add_dependency(self, path: paths.Filesystem | str) -> None:
         """Adds a dependency."""
         path = paths.Filesystem(path)
-        self._mode.check_dependency(path)
+        self._mode.check_read(path, defer_ok=True)
         self._dependencies.add(path)
 
     @overload
@@ -375,12 +346,7 @@ class Filesystem:
                 and return None; if False, raise an exception.
         """
         path = paths.Filesystem(path)
-        readable_now = self._mode.check_read(path)
-        if not readable_now and not defer_ok:
-            raise ValueError(
-                f"{str(path)!r} can't be read in this pass and deferring to a "
-                "later pass is disabled."
-            )
+        readable_now = self._mode.check_read(path, defer_ok=defer_ok)
         self._dependencies.add(path)
         if not readable_now:
             assert defer_ok
@@ -396,7 +362,7 @@ class Filesystem:
     def add_output(self, path: paths.Filesystem | str) -> None:
         """Adds an output."""
         path = paths.Filesystem(path)
-        self._mode.check_output(path)
+        self._mode.check_write(path, defer_ok=True)
         self._outputs.add(path)
 
     def write_text(
@@ -423,12 +389,7 @@ class Filesystem:
         """
         path = paths.Filesystem(path)
         full_path = self.root / path
-        writable_now = self._mode.check_write(path)
-        if not writable_now and not defer_ok:
-            raise ValueError(
-                f"{str(path)!r} can't be written in this pass and deferring "
-                "to a later pass is disabled."
-            )
+        writable_now = self._mode.check_write(path, defer_ok=defer_ok)
         self._outputs.add(path)
         if not writable_now:
             assert defer_ok
