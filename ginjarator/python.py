@@ -19,6 +19,7 @@ import contextvars
 import pathlib
 import sys
 import types
+from typing import Never
 
 from ginjarator import filesystem
 from ginjarator import paths
@@ -70,6 +71,10 @@ def _import_wrapper(
 builtins.__import__ = _import_wrapper
 
 
+class TemplateError(Exception):
+    """Exception raised manually by templates."""
+
+
 class Api:
     """API for using python code from templates."""
 
@@ -84,6 +89,10 @@ class Api:
             self._python_fs_by_resolved_path[resolved] = path
             if str(resolved) not in sys.path:
                 sys.path.append(str(resolved))
+
+    def error(self, *args: object) -> Never:
+        """Raises an exception."""
+        raise TemplateError(*args)
 
     def module(self, name: str) -> types.ModuleType:
         """Returns a module."""
