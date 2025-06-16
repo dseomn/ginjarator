@@ -47,7 +47,7 @@ class Api:
             fs: Filesystem access.
         """
         self.fs = fs
-        self.py = python.Api()
+        self.py = python.Api(fs=fs)
         self.to_ninja = build.to_ninja
 
 

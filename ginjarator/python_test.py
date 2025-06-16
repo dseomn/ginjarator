@@ -14,9 +14,96 @@
 
 # pylint: disable=missing-module-docstring
 
+import pathlib
+import textwrap
+import urllib.parse
+import xml.parsers.expat.model
+
+import pytest
+
+from ginjarator import filesystem
+from ginjarator import paths
 from ginjarator import python
 
+# NOTE: Since sys.path and sys.modules are global state, these tests must use
+# unique module paths and names.
 
-def test_api_module() -> None:
-    urllib_parse = python.Api().module("urllib.parse")
-    assert urllib_parse.unquote("%2f") == "/"
+
+def test_api_module(tmp_path: pathlib.Path) -> None:
+    package = "ginjarator__python_test__test_api_module"
+    (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
+    (tmp_path / "src").mkdir()
+    package_path = tmp_path / "src" / package
+    package_path.mkdir()
+    (package_path / "__init__.py").write_text("")
+    (package_path / "sub").mkdir()
+    (package_path / "sub/__init__.py").write_text("")
+    (package_path / "mod1.py").write_text(
+        f"import {package}.mod2; mod2 = {package}.mod2"
+    )
+    (package_path / "mod2.py").write_text(f"import {package}.mod3 as mod3")
+    (package_path / "mod3.py").write_text(f"from {package} import mod4")
+    (package_path / "mod4.py").write_text(f"from {package} import mod5 as mod5")
+    (package_path / "mod5.py").write_text("from .sub import mod6")
+    (package_path / "sub/mod6.py").write_text("from .. import mod7")
+    (package_path / "mod7.py").write_text(
+        "from . import mod8; from .mod8 import not_a_module"
+    )
+    (package_path / "mod8.py").write_text(
+        textwrap.dedent(
+            """
+            import textwrap  # no dot
+            import urllib.parse  # has dot
+            import xml.parsers.expat.model  # __spec__ is None
+            not_a_module = "kumquat"
+            """
+        )
+    )
+    fs = filesystem.Filesystem(tmp_path)
+    api = python.Api(fs=fs)
+
+    mod1 = api.module(f"{package}.mod1")
+
+    mod8 = mod1.mod2.mod3.mod4.mod5.mod6.mod7.mod8
+    assert mod8.textwrap is textwrap
+    assert mod8.urllib.parse is urllib.parse
+    assert mod8.xml.parsers.expat.model is xml.parsers.expat.model
+    assert fs.dependencies >= {
+        paths.Filesystem(f"src/{package}/__init__.py"),
+        paths.Filesystem(f"src/{package}/mod1.py"),
+        paths.Filesystem(f"src/{package}/mod2.py"),
+        paths.Filesystem(f"src/{package}/mod3.py"),
+        paths.Filesystem(f"src/{package}/mod4.py"),
+        paths.Filesystem(f"src/{package}/mod5.py"),
+        paths.Filesystem(f"src/{package}/sub/__init__.py"),
+        paths.Filesystem(f"src/{package}/sub/mod6.py"),
+        paths.Filesystem(f"src/{package}/mod7.py"),
+        paths.Filesystem(f"src/{package}/mod8.py"),
+    }
+
+
+def test_api_module_subsequent_import(tmp_path: pathlib.Path) -> None:
+    """Tests that dependencies are tracked when the module is already cached."""
+    package = "ginjarator__python_test__test_api_module_subsequent_import"
+    (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
+    (tmp_path / "src").mkdir()
+    package_path = tmp_path / "src" / package
+    package_path.mkdir()
+    (package_path / "__init__.py").write_text("")
+    python.Api(fs=filesystem.Filesystem(tmp_path)).module(package)
+    fs = filesystem.Filesystem(tmp_path)
+    api = python.Api(fs=fs)
+
+    api.module(package)
+
+    assert fs.dependencies >= {paths.Filesystem(f"src/{package}/__init__.py")}
+
+
+def test_api_module_import_error(tmp_path: pathlib.Path) -> None:
+    package = "ginjarator__python_test__test_api_module_import_error"
+    (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
+    fs = filesystem.Filesystem(tmp_path)
+    api = python.Api(fs=fs)
+
+    with pytest.raises(ImportError):
+        api.module(package)
