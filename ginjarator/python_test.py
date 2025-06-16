@@ -82,6 +82,20 @@ def test_api_module(tmp_path: pathlib.Path) -> None:
     }
 
 
+def test_api_module_import_top_level(tmp_path: pathlib.Path) -> None:
+    name = "ginjarator__python_test__test_api_module_import_top_level"
+    (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / f"{name}.py").write_text("foo = 'kumquat'")
+    fs = filesystem.Filesystem(tmp_path)
+    api = python.Api(fs=fs)
+
+    module = api.module(name)
+
+    assert module.foo == "kumquat"
+    assert fs.dependencies >= {paths.Filesystem(f"src/{name}.py")}
+
+
 def test_api_module_subsequent_import(tmp_path: pathlib.Path) -> None:
     """Tests that dependencies are tracked when the module is already cached."""
     package = "ginjarator__python_test__test_api_module_subsequent_import"
