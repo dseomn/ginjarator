@@ -279,17 +279,19 @@ class Filesystem:
         # below.
         if self._mode.use_cache_to_configure():
             minimal_config_loaded_from = paths.MINIMAL_CONFIG
-            minimal_config = config.Minimal.parse(
+            self._minimal_config = config.Minimal.parse(
                 json.loads((self.root / minimal_config_loaded_from).read_text())
             )
         else:
             minimal_config_loaded_from = paths.CONFIG
-            minimal_config = config.Config.parse(
-                tomllib.loads(
-                    (self.root / minimal_config_loaded_from).read_text()
-                )
+            self._minimal_config = config.Minimal.parse(
+                config.Config.parse(
+                    tomllib.loads(
+                        (self.root / minimal_config_loaded_from).read_text()
+                    )
+                ).serialize_minimal()
             )
-        self._mode.configure(minimal_config=minimal_config)
+        self._mode.configure(minimal_config=self._minimal_config)
 
         self._dependencies = set[paths.Filesystem]()
         self._deferred_dependencies = set[paths.Filesystem]()
@@ -373,6 +375,10 @@ class Filesystem:
             assert defer_ok
             return None
         return (self.root / path).read_text()
+
+    def read_minimal_config(self) -> config.Minimal:
+        """Returns a minimal subset of the config."""
+        return self._minimal_config
 
     def read_config(self) -> config.Config:
         """Returns the config."""

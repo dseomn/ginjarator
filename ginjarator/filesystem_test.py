@@ -304,6 +304,16 @@ def test_filesystem_read_text_returns_contents(
     assert set(fs.dependencies) >= {paths.Filesystem(path)}
 
 
+def test_filesystem_read_minimal_config(root_path: pathlib.Path) -> None:
+    (root_path / "ginjarator.toml").write_text("source_paths = ['foo']")
+    fs = filesystem.Filesystem(root_path)
+
+    minimal_config = fs.read_minimal_config()
+
+    assert tuple(minimal_config.source_paths) == (paths.Filesystem("foo"),)
+    assert not isinstance(minimal_config, config.Config)
+
+
 def test_filesystem_read_config(root_path: pathlib.Path) -> None:
     (root_path / "ginjarator.toml").write_text("source_paths = ['foo']")
     fs = filesystem.Filesystem(root_path)
