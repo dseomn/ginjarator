@@ -57,8 +57,8 @@ def test_api_assert_noop(args: Any, api: python.Api) -> None:
     api.assert_(True, *args)
 
 
-def test_api_module(tmp_path: pathlib.Path) -> None:
-    package = "ginjarator__python_test__test_api_module"
+def test_api_import(tmp_path: pathlib.Path) -> None:
+    package = "ginjarator__python_test__test_api_import"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
     (tmp_path / "src").mkdir()
     package_path = tmp_path / "src" / package
@@ -90,7 +90,7 @@ def test_api_module(tmp_path: pathlib.Path) -> None:
     fs = filesystem.Filesystem(tmp_path)
     api = python.Api(fs=fs)
 
-    mod1 = api.module(f"{package}.mod1")
+    mod1 = api.import_(f"{package}.mod1")
 
     mod8 = mod1.mod2.mod3.mod4.mod5.mod6.mod7.mod8
     assert mod8.textwrap is textwrap
@@ -110,45 +110,45 @@ def test_api_module(tmp_path: pathlib.Path) -> None:
     }
 
 
-def test_api_module_import_top_level(tmp_path: pathlib.Path) -> None:
-    name = "ginjarator__python_test__test_api_module_import_top_level"
+def test_api_import_import_top_level(tmp_path: pathlib.Path) -> None:
+    name = "ginjarator__python_test__test_api_import_import_top_level"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / f"{name}.py").write_text("foo = 'kumquat'")
     fs = filesystem.Filesystem(tmp_path)
     api = python.Api(fs=fs)
 
-    module = api.module(name)
+    module = api.import_(name)
 
     assert module.foo == "kumquat"
     assert fs.dependencies >= {paths.Filesystem(f"src/{name}.py")}
 
 
-def test_api_module_subsequent_import(tmp_path: pathlib.Path) -> None:
+def test_api_import_subsequent_import(tmp_path: pathlib.Path) -> None:
     """Tests that dependencies are tracked when the module is already cached."""
-    package = "ginjarator__python_test__test_api_module_subsequent_import"
+    package = "ginjarator__python_test__test_api_import_subsequent_import"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
     (tmp_path / "src").mkdir()
     package_path = tmp_path / "src" / package
     package_path.mkdir()
     (package_path / "__init__.py").write_text("")
-    python.Api(fs=filesystem.Filesystem(tmp_path)).module(package)
+    python.Api(fs=filesystem.Filesystem(tmp_path)).import_(package)
     fs = filesystem.Filesystem(tmp_path)
     api = python.Api(fs=fs)
 
-    api.module(package)
+    api.import_(package)
 
     assert fs.dependencies >= {paths.Filesystem(f"src/{package}/__init__.py")}
 
 
-def test_api_module_import_error(tmp_path: pathlib.Path) -> None:
-    package = "ginjarator__python_test__test_api_module_import_error"
+def test_api_import_import_error(tmp_path: pathlib.Path) -> None:
+    package = "ginjarator__python_test__test_api_import_import_error"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
     fs = filesystem.Filesystem(tmp_path)
     api = python.Api(fs=fs)
 
     with pytest.raises(ImportError):
-        api.module(package)
+        api.import_(package)
 
 
 def test_api_raise_(api: python.Api) -> None:

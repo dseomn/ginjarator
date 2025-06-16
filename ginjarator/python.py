@@ -99,7 +99,7 @@ class Api:
         else:
             assert expression, message
 
-    def module(self, name: str) -> types.ModuleType:
+    def import_(self, name: str) -> types.ModuleType:
         """Returns a module.
 
         This attempts to track imports from the project's python_paths and add
