@@ -93,6 +93,7 @@ class Api:
                 sys.path.append(str(resolved))
 
     def assert_(self, expression: object, message: object = _MISSING) -> None:
+        """Asserts that expression is truthy."""
         if message is _MISSING:
             assert expression
         else:
