@@ -100,7 +100,27 @@ class Api:
             assert expression, message
 
     def module(self, name: str) -> types.ModuleType:
-        """Returns a module."""
+        """Returns a module.
+
+        This attempts to track imports from the project's python_paths and add
+        them as dependencies, so that templates are rebuilt when any
+        project-local modules they import are changed. However, there are (at
+        least) two limitations:
+
+        It only tracks imports that happen during this function call, which
+        should include all the normal imports at the top of files. It does not
+        track imports that happen after this function returns, e.g., because
+        they're in the body of a function.
+
+        It does not currently work with importlib.import_module.
+
+        If a template knows ahead of time which project-local modules will be
+        imported in either of those ways, it can call
+        ginjarator.fs.add_dependency() manually.
+
+        Args:
+            name: Module to import.
+        """
         imported_origins = set[str]()
         imported_origins_token = _imported_origins.set(imported_origins)
         try:
