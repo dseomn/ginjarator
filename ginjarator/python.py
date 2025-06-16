@@ -90,10 +90,6 @@ class Api:
             if str(resolved) not in sys.path:
                 sys.path.append(str(resolved))
 
-    def error(self, *args: object) -> Never:
-        """Raises an exception."""
-        raise TemplateError(*args)
-
     def module(self, name: str) -> types.ModuleType:
         """Returns a module."""
         imported_origins = set[str]()
@@ -124,3 +120,7 @@ class Api:
                     break
 
         return module
+
+    def raise_(self, *args: object) -> Never:
+        """Raises an exception."""
+        raise TemplateError(*args)

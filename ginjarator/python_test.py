@@ -35,11 +35,6 @@ def _api(tmp_path: pathlib.Path) -> python.Api:
     return python.Api(fs=filesystem.Filesystem(tmp_path))
 
 
-def test_api_error(api: python.Api) -> None:
-    with pytest.raises(python.TemplateError, match="kumquat"):
-        api.error("kumquat")
-
-
 def test_api_module(tmp_path: pathlib.Path) -> None:
     package = "ginjarator__python_test__test_api_module"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
@@ -132,3 +127,8 @@ def test_api_module_import_error(tmp_path: pathlib.Path) -> None:
 
     with pytest.raises(ImportError):
         api.module(package)
+
+
+def test_api_raise_(api: python.Api) -> None:
+    with pytest.raises(python.TemplateError, match="kumquat"):
+        api.raise_("kumquat")
