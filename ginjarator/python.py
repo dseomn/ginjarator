@@ -24,6 +24,8 @@ from typing import Never
 from ginjarator import filesystem
 from ginjarator import paths
 
+_MISSING = object()
+
 # See
 # https://discuss.python.org/t/tracking-and-isolating-imports-without-sys-modules-caching/95418
 # for discussion about the approach this file uses for tracking imports.
@@ -89,6 +91,12 @@ class Api:
             self._python_fs_by_resolved_path[resolved] = path
             if str(resolved) not in sys.path:
                 sys.path.append(str(resolved))
+
+    def assert_(self, expression: object, message: object = _MISSING) -> None:
+        if message is _MISSING:
+            assert expression
+        else:
+            assert expression, message
 
     def module(self, name: str) -> types.ModuleType:
         """Returns a module."""

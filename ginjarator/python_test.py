@@ -16,6 +16,7 @@
 
 import pathlib
 import textwrap
+from typing import Any
 import urllib.parse
 import xml.parsers.expat.model
 
@@ -33,6 +34,27 @@ from ginjarator import python
 def _api(tmp_path: pathlib.Path) -> python.Api:
     (tmp_path / "ginjarator.toml").write_text("")
     return python.Api(fs=filesystem.Filesystem(tmp_path))
+
+
+def test_api_assert_no_message(api: python.Api) -> None:
+    with pytest.raises(AssertionError):
+        api.assert_(False)
+
+
+def test_api_assert_with_message(api: python.Api) -> None:
+    with pytest.raises(AssertionError, match="kumquat"):
+        api.assert_(False, "kumquat")
+
+
+@pytest.mark.parametrize(
+    "args",
+    (
+        (),
+        ("kumquat",),
+    ),
+)
+def test_api_assert_noop(args: Any, api: python.Api) -> None:
+    api.assert_(True, *args)
 
 
 def test_api_module(tmp_path: pathlib.Path) -> None:
