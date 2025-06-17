@@ -20,12 +20,18 @@ import os
 import pathlib
 import subprocess
 import textwrap
+import time
 
 import pytest
 
 _NINJA_ARGS = ("ninja", "-d", "explain")
 
 pytestmark = pytest.mark.e2e
+
+
+def _sleep_for_mtime() -> None:
+    """Prevents writes before/after calling this from having the same mtime."""
+    time.sleep(0.01)
 
 
 @pytest.fixture(autouse=True)
@@ -160,6 +166,7 @@ def test_add_ninja_template() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
             """\
@@ -207,6 +214,7 @@ def test_remove_ninja_template() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text("")
     pathlib.Path("src/foo.jinja").unlink()
 
@@ -237,6 +245,7 @@ def test_update_ninja_template_dependency() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("src/included.jinja").write_text(
         textwrap.dedent(
             """\
@@ -436,6 +445,7 @@ def test_update_template() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("src/foo.jinja").write_text(
         textwrap.dedent(
             """\
@@ -453,6 +463,7 @@ def test_add_template() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
             """\
@@ -490,6 +501,7 @@ def test_add_template_dependency() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
             """\
@@ -550,6 +562,7 @@ def test_remove_template() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text("")
     pathlib.Path("src/foo.jinja").unlink()
 
@@ -595,6 +608,7 @@ def test_remove_template_dependency() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
             """\
@@ -640,6 +654,7 @@ def test_remove_template_output() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("src/foo.jinja").write_text("")
 
     _run_ninja()
@@ -686,6 +701,7 @@ def test_template_dependency_changes_creator() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("src/template-2.jinja").write_text("")
     pathlib.Path("src/template-3.jinja").write_text(
         textwrap.dedent(
@@ -731,6 +747,7 @@ def test_error_when_path_removed_from_config() -> None:
     _run_init()
     _run_ninja()
 
+    _sleep_for_mtime()
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
             """\
