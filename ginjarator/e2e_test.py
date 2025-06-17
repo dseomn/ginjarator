@@ -415,6 +415,40 @@ def test_conflicting_writes() -> None:
     _run(_NINJA_ARGS, expect_success=False)
 
 
+def test_update_template() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out", "contents") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out", "new-contents") %}
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "new-contents"
+
+
 def test_add_template() -> None:
     _run_init()
     _run_ninja()
