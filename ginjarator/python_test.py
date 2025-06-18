@@ -77,7 +77,8 @@ def test_api_import(tmp_path: pathlib.Path) -> None:
     (package_path / "mod7.py").write_text(
         "from . import mod8; from .mod8 import not_a_module"
     )
-    (package_path / "mod8.py").write_text(
+    (package_path / "mod8.py").write_text("from .mod9 import *")
+    (package_path / "mod9.py").write_text(
         textwrap.dedent(
             """
             import textwrap  # no dot
@@ -107,6 +108,7 @@ def test_api_import(tmp_path: pathlib.Path) -> None:
         paths.Filesystem(f"src/{package}/sub/mod6.py"),
         paths.Filesystem(f"src/{package}/mod7.py"),
         paths.Filesystem(f"src/{package}/mod8.py"),
+        paths.Filesystem(f"src/{package}/mod9.py"),
     }
 
 

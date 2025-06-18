@@ -61,6 +61,8 @@ def _import_wrapper(
     # The type signature says fromlist can't be None, but sometimes it is.
     if fromlist is not None:
         for attr in fromlist:
+            if attr == "*":
+                continue
             maybe_module = getattr(named_module, attr)
             if isinstance(maybe_module, types.ModuleType):
                 modules.append(maybe_module)
