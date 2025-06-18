@@ -413,35 +413,23 @@ class Filesystem:
         path: paths.Filesystem | str,
         contents: str,
         *,
-        preserve_mtime: bool = True,
         defer_ok: bool = True,
-    ) -> bool:
+    ) -> None:
         """Writes a string to a file, or adds the file as an output for later.
 
         Args:
             path: Path to write to.
             contents: String to write.
-            preserve_mtime: If True and the contents are unchanged, it doesn't
-                update the mtime, to avoid rebuilding downstream targets.
             defer_ok: When the file can't be written now but can be added as an
                 output to write in another pass: If True, add the output and
                 succeed silently; if False, raise an exception.
-
-        Returns:
-            Whether the file or its metadata was modified or not.
         """
         if not self._add_output(paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
-            return False
+            return
         full_path = self.root / path
-        try:
-            if preserve_mtime and contents == full_path.read_text():
-                return False
-        except FileNotFoundError:
-            pass
         full_path.parent.mkdir(parents=True, exist_ok=True)
         full_path.write_text(contents)
-        return True
 
     def write_text_macro(
         self,

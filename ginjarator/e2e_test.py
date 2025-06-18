@@ -459,6 +459,93 @@ def test_update_template() -> None:
     assert pathlib.Path("build/out").read_text() == "new-contents"
 
 
+def test_update_template_dependency_scan_and_render() -> None:
+    """Tests updating a dependency of both the scan and render passes."""
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo-in").write_text("contents")
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text(
+                "build/out",
+                ginjarator.fs.read_text("src/foo-in"),
+            ) %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    _sleep_for_mtime()
+    pathlib.Path("src/foo-in").write_text("new-contents")
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out").read_text() == "new-contents"
+
+
+def test_update_template_dependency_render_only() -> None:
+    """Tests updating a dependency of only the render pass."""
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/template-1.jinja",
+                "src/template-2.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/template-1.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
+            {% if out_2 is none %}
+                {% do ginjarator.fs.add_output("build/out-1") %}
+            {% else %}
+                {% do ginjarator.fs.write_text(
+                    "build/out-1",
+                    out_2.replace("2", "1"),
+                ) %}
+            {% endif %}
+            """
+        )
+    )
+    pathlib.Path("src/template-2.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    _sleep_for_mtime()
+    pathlib.Path("src/template-2.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out-2", "new-contents-2") %}
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/out-1").read_text() == "new-contents-1"
+    assert pathlib.Path("build/out-2").read_text() == "new-contents-2"
+
+
 def test_add_template() -> None:
     _run_init()
     _run_ninja()

@@ -18,18 +18,12 @@ import copy
 import json
 import pathlib
 import textwrap
-import time
 
 import pytest
 
 from ginjarator import config
 from ginjarator import filesystem
 from ginjarator import paths
-
-
-def _sleep_for_mtime() -> None:
-    """Prevents writes before/after calling this from having the same mtime."""
-    time.sleep(0.01)
 
 
 @pytest.fixture(name="root_path")
@@ -485,52 +479,10 @@ def test_filesystem_write_text_deferred(root_path: pathlib.Path) -> None:
     path = "build/some-file"
     full_path = root_path / path
 
-    changed = fs.write_text(path, contents, defer_ok=True)
+    fs.write_text(path, contents, defer_ok=True)
 
     assert not full_path.exists()
     assert set(fs.deferred_outputs) == {paths.Filesystem(path)}
-    assert not changed
-
-
-@pytest.mark.parametrize(
-    "mode,path",
-    (
-        (filesystem.InternalMode(), ".ginjarator/some-file"),
-        (
-            filesystem.RenderMode(
-                dependencies=(paths.MINIMAL_CONFIG,),
-                outputs=(paths.Filesystem("build/some-file"),),
-            ),
-            "build/some-file",
-        ),
-    ),
-)
-@pytest.mark.parametrize("defer_ok", (False, True))
-def test_filesystem_write_text_noop(
-    mode: filesystem.Mode,
-    path: str,
-    defer_ok: bool,
-    root_path: pathlib.Path,
-) -> None:
-    fs = filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
-    contents = "the contents of the file"
-    full_path = root_path / path
-    full_path.parent.mkdir(parents=True, exist_ok=True)
-    full_path.write_text(contents)
-    original_mtime = full_path.stat().st_mtime
-    _sleep_for_mtime()
-
-    changed = fs.write_text(
-        path,
-        contents,
-        preserve_mtime=True,
-        defer_ok=defer_ok,
-    )
-
-    assert full_path.read_text() == contents
-    assert full_path.stat().st_mtime == original_mtime
-    assert set(fs.outputs) == {paths.Filesystem(path)}
-    assert not changed
 
 
 @pytest.mark.parametrize(
@@ -557,11 +509,10 @@ def test_filesystem_write_text_writes_new_file(
     contents = "the contents of the file"
     full_path = root_path / path
 
-    changed = fs.write_text(path, contents, defer_ok=defer_ok)
+    fs.write_text(path, contents, defer_ok=defer_ok)
 
     assert full_path.read_text() == contents
     assert set(fs.outputs) == {paths.Filesystem(path)}
-    assert changed
 
 
 @pytest.mark.parametrize(
@@ -577,20 +528,10 @@ def test_filesystem_write_text_writes_new_file(
         ),
     ),
 )
-@pytest.mark.parametrize(
-    "contents,preserve_mtime",
-    (
-        ("original contents of the file", False),
-        ("new contents of the file", False),
-        ("new contents of the file", True),
-    ),
-)
 @pytest.mark.parametrize("defer_ok", (False, True))
 def test_filesystem_write_text_updates_file(
     mode: filesystem.Mode,
     path: str,
-    contents: str,
-    preserve_mtime: bool,
     defer_ok: bool,
     root_path: pathlib.Path,
 ) -> None:
@@ -598,20 +539,11 @@ def test_filesystem_write_text_updates_file(
     full_path = root_path / path
     full_path.parent.mkdir(parents=True, exist_ok=True)
     full_path.write_text("original contents of the file")
-    original_mtime = full_path.stat().st_mtime
-    _sleep_for_mtime()
 
-    changed = fs.write_text(
-        path,
-        contents,
-        preserve_mtime=preserve_mtime,
-        defer_ok=defer_ok,
-    )
+    fs.write_text(path, "new contents of the file", defer_ok=defer_ok)
 
-    assert full_path.read_text() == contents
-    assert full_path.stat().st_mtime > original_mtime
+    assert full_path.read_text() == "new contents of the file"
     assert set(fs.outputs) == {paths.Filesystem(path)}
-    assert changed
 
 
 def test_filesystem_write_text_macro_deferred(root_path: pathlib.Path) -> None:

@@ -77,17 +77,14 @@ def _main_ninja(
                 command = ginjarator init
                 description = INIT
                 generator = true
-                restat = true
 
             rule scan
                 command = ginjarator scan $in
                 description = SCAN $in
-                restat = true
 
             rule render
                 command = ginjarator render $in
                 description = RENDER $in
-                restat = true
 
             rule touch
                 command = touch $out
@@ -139,7 +136,6 @@ def init(
     fs = filesystem.Filesystem(root_path)
     config_ = fs.read_config()
     subninjas = []
-    subninjas_changed = []
 
     fs.write_text(
         paths.INTERNAL / ".gitignore",
@@ -164,20 +160,16 @@ def init(
     for template_name in config_.ninja_templates:
         template_ninja_path = paths.ninja_template_output(template_name)
         subninjas.append(template_ninja_path)
-        subninjas_changed.append(
-            fs.write_text(
-                template_ninja_path,
-                template.ninja(str(template_name), internal_fs=fs),
-            )
+        fs.write_text(
+            template_ninja_path,
+            template.ninja(str(template_name), internal_fs=fs),
         )
 
     # This has to be the last subninja, so that it can include the dependencies
     # and outputs added by previous subninjas.
     fs.add_output(paths.NINJA_MAIN)
     subninjas.append(paths.NINJA_MAIN)
-    subninjas_changed.append(
-        fs.write_text(paths.NINJA_MAIN, _main_ninja(fs=fs, config_=config_))
-    )
+    fs.write_text(paths.NINJA_MAIN, _main_ninja(fs=fs, config_=config_))
 
     fs.write_text(
         paths.NINJA_ENTRYPOINT,
@@ -190,5 +182,4 @@ def init(
                 ),
             )
         ),
-        preserve_mtime=not any(subninjas_changed),
     )

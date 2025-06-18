@@ -179,8 +179,4 @@ def render(
         ),
     )
     _render(api, template_name)
-    internal_fs.write_text(
-        paths.template_render_stamp(template_name),
-        "",
-        preserve_mtime=False,
-    )
+    internal_fs.write_text(paths.template_render_stamp(template_name), "")
