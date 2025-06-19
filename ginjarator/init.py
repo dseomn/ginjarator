@@ -176,6 +176,7 @@ def init(
         "".join(
             (
                 f"ninja_required_version = {_NINJA_REQUIRED_VERSION}\n",
+                f"builddir = {build.to_ninja(paths.NINJA_BUILDDIR)}\n",
                 *(
                     f"subninja {build.to_ninja(subninja)}\n"
                     for subninja in subninjas

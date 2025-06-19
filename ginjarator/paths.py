@@ -45,6 +45,7 @@ def internal(*components: str) -> Filesystem:
 
 NINJA_ENTRYPOINT = Filesystem("build.ninja")
 NINJA_ENTRYPOINT_DEPFILE = internal("build.ninja.d")
+NINJA_BUILDDIR = internal("ninja_builddir")
 NINJA_MAIN = internal("main.ninja")
 MINIMAL_CONFIG = internal("config", "minimal.json")
 SCAN_DONE_STAMP = internal("scan-done.stamp")
