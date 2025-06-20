@@ -16,6 +16,7 @@
 import argparse
 
 from ginjarator import init
+from ginjarator import paths
 from ginjarator import template
 
 
@@ -48,14 +49,14 @@ def main() -> None:
         help="Scan a template. This generally shouldn't be called manually.",
     )
     scan_parser.set_defaults(subcommand=_scan)
-    scan_parser.add_argument("template")
+    scan_parser.add_argument("template", type=paths.Filesystem)
 
     render_parser = subparsers.add_parser(
         "render",
         help="Render a template. This generally shouldn't be called manually.",
     )
     render_parser.set_defaults(subcommand=_render)
-    render_parser.add_argument("template")
+    render_parser.add_argument("template", type=paths.Filesystem)
 
     parsed_args = parser.parse_args()
     parsed_args.subcommand(parsed_args)
