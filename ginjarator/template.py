@@ -31,6 +31,7 @@ class Api:
     """API for use by templates.
 
     Attributes:
+        current_template: The template currently being rendered.
         fs: Filesystem access.
         py: API to use Python code.
         to_ninja: Converts a value to ninja syntax.
@@ -39,13 +40,11 @@ class Api:
     def __init__(
         self,
         *,
+        current_template: paths.Filesystem,
         fs: filesystem.Filesystem,
     ) -> None:
-        """Initializer.
-
-        Args:
-            fs: Filesystem access.
-        """
+        """Initializer."""
+        self.current_template = current_template
         self.fs = fs
         self.py = python.Api(fs=fs)
         self.to_ninja = build.to_ninja
@@ -92,6 +91,7 @@ def ninja(
 ) -> str:
     """Returns custom ninja from the given template."""
     api = Api(
+        current_template=template_path,
         fs=filesystem.Filesystem(internal_fs.root, mode=filesystem.NinjaMode()),
     )
     contents = _render(api, template_path)
@@ -109,6 +109,7 @@ def scan(
     """Scans a template for dependencies and outputs."""
     internal_fs = filesystem.Filesystem(root_path)
     api = Api(
+        current_template=template_path,
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
     _render(api, template_path)
@@ -168,6 +169,7 @@ def render(
         )
     )
     api = Api(
+        current_template=template_path,
         fs=filesystem.Filesystem(
             root_path,
             mode=filesystem.RenderMode(
