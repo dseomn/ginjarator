@@ -51,26 +51,29 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 @pytest.mark.parametrize(
-    "template_name,error_regex",
+    "template_path,error_regex",
     (
         ("src/kumquat", r"kumquat"),
         ("build/kumquat", r"kumquat.* not built yet"),
     ),
 )
 def test_loader_template_not_found(
-    template_name: str,
+    template_path: str,
     error_regex: str,
     root_path: pathlib.Path,
 ) -> None:
     with pytest.raises(jinja2.TemplateNotFound, match=error_regex):
-        template.scan(template_name, root_path=root_path)
+        template.scan(paths.Filesystem(template_path), root_path=root_path)
 
 
 def test_ninja(root_path: pathlib.Path) -> None:
     (root_path / "src/template.jinja").write_text("contents")
     internal_fs = filesystem.Filesystem(root_path)
 
-    rendered = template.ninja("src/template.jinja", internal_fs=internal_fs)
+    rendered = template.ninja(
+        paths.Filesystem("src/template.jinja"),
+        internal_fs=internal_fs,
+    )
 
     assert rendered == "contents"
     assert set(internal_fs.dependencies) >= {
@@ -88,7 +91,7 @@ def test_scan(root_path: pathlib.Path) -> None:
         """
     )
 
-    template.scan("src/template.jinja", root_path=root_path)
+    template.scan(paths.Filesystem("src/template.jinja"), root_path=root_path)
 
     assert not (root_path / "build/output").exists()
     assert json.loads(template_state_path.read_text()) == dict(
@@ -124,7 +127,7 @@ def test_render(root_path: pathlib.Path) -> None:
         """
     )
 
-    template.render("src/template.jinja", root_path=root_path)
+    template.render(paths.Filesystem("src/template.jinja"), root_path=root_path)
 
     assert (root_path / "build/output").read_text() == "3"
     assert (

@@ -73,7 +73,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.root / template), lambda: False)
 
 
-def _render(api: Api, template_name: str) -> str:
+def _render(api: Api, template_path: paths.Filesystem) -> str:
     environment = jinja2.Environment(
         keep_trailing_newline=True,
         extensions=("jinja2.ext.do",),
@@ -81,12 +81,12 @@ def _render(api: Api, template_name: str) -> str:
         loader=_Loader(api.fs),
     )
     environment.globals["ginjarator"] = api
-    template = environment.get_template(template_name)
+    template = environment.get_template(str(template_path))
     return template.render()
 
 
 def ninja(
-    template_name: str,
+    template_path: paths.Filesystem,
     *,
     internal_fs: filesystem.Filesystem,
 ) -> str:
@@ -94,7 +94,7 @@ def ninja(
     api = Api(
         fs=filesystem.Filesystem(internal_fs.root, mode=filesystem.NinjaMode()),
     )
-    contents = _render(api, template_name)
+    contents = _render(api, template_path)
     for dependency in api.fs.dependencies:
         internal_fs.add_dependency(dependency)
     # NinjaMode doesn't allow outputs, so no need to copy them.
@@ -102,7 +102,7 @@ def ninja(
 
 
 def scan(
-    template_name: str,
+    template_path: paths.Filesystem,
     *,
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
@@ -111,11 +111,11 @@ def scan(
     api = Api(
         fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
     )
-    _render(api, template_name)
+    _render(api, template_path)
     scan_dependencies = api.fs.dependencies
     render_dependencies = api.fs.dependencies | api.fs.deferred_dependencies
     render_outputs = api.fs.outputs | api.fs.deferred_outputs
-    state_path = paths.template_state(template_name)
+    state_path = paths.template_state(template_path)
     internal_fs.write_text(
         state_path,
         json.dumps(
@@ -129,15 +129,15 @@ def scan(
         ),
     )
     internal_fs.write_text(
-        paths.template_depfile(template_name),
+        paths.template_depfile(template_path),
         build.to_depfile(
             first_output=state_path,
             dependencies=scan_dependencies,
         ),
     )
-    render_stamp_path = paths.template_render_stamp(template_name)
+    render_stamp_path = paths.template_render_stamp(template_path)
     internal_fs.write_text(
-        paths.template_dyndep(template_name),
+        paths.template_dyndep(template_path),
         textwrap.dedent(
             f"""\
             ninja_dyndep_version = 1
@@ -155,7 +155,7 @@ def scan(
 
 
 def render(
-    template_name: str,
+    template_path: paths.Filesystem,
     *,
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
@@ -163,7 +163,7 @@ def render(
     internal_fs = filesystem.Filesystem(root_path)
     state = json.loads(
         internal_fs.read_text(
-            paths.template_state(template_name),
+            paths.template_state(template_path),
             defer_ok=False,
         )
     )
@@ -178,5 +178,5 @@ def render(
             ),
         ),
     )
-    _render(api, template_name)
-    internal_fs.write_text(paths.template_render_stamp(template_name), "")
+    _render(api, template_path)
+    internal_fs.write_text(paths.template_render_stamp(template_path), "")

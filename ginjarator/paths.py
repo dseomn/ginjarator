@@ -51,26 +51,26 @@ MINIMAL_CONFIG = internal("config", "minimal.json")
 SCAN_DONE_STAMP = internal("scan-done.stamp")
 
 
-def ninja_template_output(template_name: Filesystem | str) -> Filesystem:
+def ninja_template_output(template_path: Filesystem | str) -> Filesystem:
     """Returns the output path for a ninja template."""
-    return internal("ninja_templates", f"{template_name}.ninja")
+    return internal("ninja_templates", f"{template_path}.ninja")
 
 
-def template_state(template_name: Filesystem | str) -> Filesystem:
+def template_state(template_path: Filesystem | str) -> Filesystem:
     """Returns the path for template state."""
-    return internal("templates", f"{template_name}.json")
+    return internal("templates", f"{template_path}.json")
 
 
-def template_depfile(template_name: Filesystem | str) -> Filesystem:
+def template_depfile(template_path: Filesystem | str) -> Filesystem:
     """Returns the path for a template's depfile."""
-    return internal("templates", f"{template_name}.d")
+    return internal("templates", f"{template_path}.d")
 
 
-def template_dyndep(template_name: Filesystem | str) -> Filesystem:
+def template_dyndep(template_path: Filesystem | str) -> Filesystem:
     """Returns the path for a template's dyndep file."""
-    return internal("templates", f"{template_name}.dd")
+    return internal("templates", f"{template_path}.dd")
 
 
-def template_render_stamp(template_name: Filesystem | str) -> Filesystem:
+def template_render_stamp(template_path: Filesystem | str) -> Filesystem:
     """Returns the path for a template's render stamp."""
-    return internal("templates", f"{template_name}.render-stamp")
+    return internal("templates", f"{template_path}.render-stamp")

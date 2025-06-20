@@ -26,11 +26,11 @@ from ginjarator import template
 _NINJA_REQUIRED_VERSION = "1.10"
 
 
-def _main_ninja_for_template(template_name: paths.Filesystem) -> str:
-    state_path = paths.template_state(template_name)
-    depfile_path = paths.template_depfile(template_name)
-    dyndep_path = paths.template_dyndep(template_name)
-    render_stamp_path = paths.template_render_stamp(template_name)
+def _main_ninja_for_template(template_path: paths.Filesystem) -> str:
+    state_path = paths.template_state(template_path)
+    depfile_path = paths.template_depfile(template_path)
+    dyndep_path = paths.template_dyndep(template_path)
+    render_stamp_path = paths.template_render_stamp(template_path)
     return textwrap.dedent(
         f"""\
         build $
@@ -40,7 +40,7 @@ def _main_ninja_for_template(template_name: paths.Filesystem) -> str:
                 {build.to_ninja(dyndep_path)} $
                 : $
                 scan $
-                {build.to_ninja(template_name)} $
+                {build.to_ninja(template_path)} $
                 || $
                 {build.to_ninja(paths.NINJA_ENTRYPOINT)}
             depfile = {build.to_ninja(depfile_path)}
@@ -49,7 +49,7 @@ def _main_ninja_for_template(template_name: paths.Filesystem) -> str:
                 {build.to_ninja(render_stamp_path)} $
                 : $
                 render $
-                {build.to_ninja(template_name)} $
+                {build.to_ninja(template_path)} $
                 | $
                 {build.to_ninja(state_path)} $
                 || $
@@ -92,9 +92,9 @@ def _main_ninja(
         )
     )
 
-    for template_name in config_.templates:
-        parts.append(_main_ninja_for_template(template_name))
-        scan_done_dependencies.append(paths.template_state(template_name))
+    for template_path in config_.templates:
+        parts.append(_main_ninja_for_template(template_path))
+        scan_done_dependencies.append(paths.template_state(template_path))
 
     fs.write_text(
         paths.NINJA_ENTRYPOINT_DEPFILE,
@@ -157,12 +157,12 @@ def init(
         ),
     )
 
-    for template_name in config_.ninja_templates:
-        template_ninja_path = paths.ninja_template_output(template_name)
+    for template_path in config_.ninja_templates:
+        template_ninja_path = paths.ninja_template_output(template_path)
         subninjas.append(template_ninja_path)
         fs.write_text(
             template_ninja_path,
-            template.ninja(str(template_name), internal_fs=fs),
+            template.ninja(template_path, internal_fs=fs),
         )
 
     # This has to be the last subninja, so that it can include the dependencies
