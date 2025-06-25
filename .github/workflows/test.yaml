@@ -45,3 +45,4 @@ jobs:
       with:
         name: pytest-${{ matrix.python-version }}
         path: /tmp/pytest-of-runner
+        include-hidden-files: true
