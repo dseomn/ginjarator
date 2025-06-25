@@ -20,8 +20,8 @@ import pathlib
 import tomllib
 from typing import Any, Literal, overload, override
 
-from ginjarator import config
-from ginjarator import paths
+from ginjarator import _config
+from ginjarator import _paths
 
 
 def _is_relative_to_any(
@@ -32,10 +32,10 @@ def _is_relative_to_any(
 
 
 def _check_allowed(
-    path: paths.Filesystem,
+    path: _paths.Filesystem,
     *,
-    allowed_now: Collection[paths.Filesystem] = (),
-    allowed_deferred: Collection[paths.Filesystem] = (),
+    allowed_now: Collection[_paths.Filesystem] = (),
+    allowed_deferred: Collection[_paths.Filesystem] = (),
     defer_ok: bool,
 ) -> bool:
     # NOTE: This is meant to prevent mistakes that could make builds less
@@ -62,7 +62,7 @@ class Mode(abc.ABC):
     """How the filesystem can be accessed."""
 
     def __init__(self) -> None:
-        self._minimal_config: config.Minimal | None = None
+        self._minimal_config: _config.Minimal | None = None
 
     def use_cache_to_configure(self) -> bool:
         """Whether the minimal config should be read from cache."""
@@ -71,7 +71,7 @@ class Mode(abc.ABC):
     def configure(
         self,
         *,
-        minimal_config: config.Minimal,
+        minimal_config: _config.Minimal,
     ) -> None:
         """Configures the mode for use by a Filesystem."""
         if self._minimal_config is not None:
@@ -79,14 +79,14 @@ class Mode(abc.ABC):
         self._minimal_config = minimal_config
 
     @property
-    def minimal_config(self) -> config.Minimal:
+    def minimal_config(self) -> _config.Minimal:
         """Minimal config."""
         if self._minimal_config is None:
             raise ValueError("Not configured yet.")
         return self._minimal_config
 
     @abc.abstractmethod
-    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         """Checks if the path can be read.
 
         Args:
@@ -102,7 +102,7 @@ class Mode(abc.ABC):
         """
 
     @abc.abstractmethod
-    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         """Checks if the path can be written.
 
         Args:
@@ -126,24 +126,24 @@ class InternalMode(Mode):
         return False
 
     @override
-    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
             allowed_now=(
-                paths.CONFIG,
-                paths.INTERNAL,
+                _paths.CONFIG,
+                _paths.INTERNAL,
                 *self.minimal_config.source_paths,
             ),
             defer_ok=False,
         )
 
     @override
-    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
             allowed_now=(
-                paths.INTERNAL,
-                paths.NINJA_ENTRYPOINT,
+                _paths.INTERNAL,
+                _paths.NINJA_ENTRYPOINT,
             ),
             defer_ok=False,
         )
@@ -163,18 +163,18 @@ class NinjaMode(Mode):
         return False
 
     @override
-    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
             allowed_now=(
-                paths.CONFIG,
+                _paths.CONFIG,
                 *self.minimal_config.source_paths,
             ),
             defer_ok=False,
         )
 
     @override
-    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(path, defer_ok=False)
 
 
@@ -186,12 +186,12 @@ class ScanMode(Mode):
     """
 
     @override
-    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
             allowed_now=(
-                paths.CONFIG,
-                paths.MINIMAL_CONFIG,
+                _paths.CONFIG,
+                _paths.MINIMAL_CONFIG,
                 *self.minimal_config.source_paths,
             ),
             allowed_deferred=self.minimal_config.build_paths,
@@ -199,7 +199,7 @@ class ScanMode(Mode):
         )
 
     @override
-    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
             allowed_deferred=self.minimal_config.build_paths,
@@ -217,8 +217,8 @@ class RenderMode(Mode):
     def __init__(
         self,
         *,
-        dependencies: Collection[paths.Filesystem] = (),
-        outputs: Collection[paths.Filesystem] = (),
+        dependencies: Collection[_paths.Filesystem] = (),
+        outputs: Collection[_paths.Filesystem] = (),
     ) -> None:
         """Initializer.
 
@@ -237,7 +237,7 @@ class RenderMode(Mode):
         self._scan_mode.configure(*args, **kwargs)
 
     @override
-    def check_read(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         self._scan_mode.check_read(path, defer_ok=True)
         return _check_allowed(
             path,
@@ -246,7 +246,7 @@ class RenderMode(Mode):
         )
 
     @override
-    def check_write(self, path: paths.Filesystem, *, defer_ok: bool) -> bool:
+    def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         self._scan_mode.check_write(path, defer_ok=True)
         return _check_allowed(path, allowed_now=self._outputs, defer_ok=False)
 
@@ -278,14 +278,14 @@ class Filesystem:
         # because of the circular dependency otherwise. The dependency is added
         # below.
         if self._mode.use_cache_to_configure():
-            minimal_config_loaded_from = paths.MINIMAL_CONFIG
-            self._minimal_config = config.Minimal.parse(
+            minimal_config_loaded_from = _paths.MINIMAL_CONFIG
+            self._minimal_config = _config.Minimal.parse(
                 json.loads((self.root / minimal_config_loaded_from).read_text())
             )
         else:
-            minimal_config_loaded_from = paths.CONFIG
-            self._minimal_config = config.Minimal.parse(
-                config.Config.parse(
+            minimal_config_loaded_from = _paths.CONFIG
+            self._minimal_config = _config.Minimal.parse(
+                _config.Config.parse(
                     tomllib.loads(
                         (self.root / minimal_config_loaded_from).read_text()
                     )
@@ -293,37 +293,37 @@ class Filesystem:
             )
         self._mode.configure(minimal_config=self._minimal_config)
 
-        self._dependencies = set[paths.Filesystem]()
-        self._deferred_dependencies = set[paths.Filesystem]()
-        self._outputs = set[paths.Filesystem]()
-        self._deferred_outputs = set[paths.Filesystem]()
+        self._dependencies = set[_paths.Filesystem]()
+        self._deferred_dependencies = set[_paths.Filesystem]()
+        self._outputs = set[_paths.Filesystem]()
+        self._deferred_outputs = set[_paths.Filesystem]()
 
         # This has to be after everything is initialized.
         self.add_dependency(minimal_config_loaded_from, defer_ok=False)
 
     @property
-    def dependencies(self) -> Set[paths.Filesystem]:
+    def dependencies(self) -> Set[_paths.Filesystem]:
         """Files that were read."""
         return frozenset(self._dependencies)
 
     @property
-    def deferred_dependencies(self) -> Set[paths.Filesystem]:
+    def deferred_dependencies(self) -> Set[_paths.Filesystem]:
         """Files that were deferred to be read in another pass."""
         return frozenset(self._deferred_dependencies)
 
     @property
-    def outputs(self) -> Set[paths.Filesystem]:
+    def outputs(self) -> Set[_paths.Filesystem]:
         """Files that were written."""
         return frozenset(self._outputs)
 
     @property
-    def deferred_outputs(self) -> Set[paths.Filesystem]:
+    def deferred_outputs(self) -> Set[_paths.Filesystem]:
         """Files that were deferred to be written in another pass."""
         return frozenset(self._deferred_outputs)
 
     def _add_dependency(
         self,
-        path: paths.Filesystem,
+        path: _paths.Filesystem,
         *,
         defer_ok: bool,
     ) -> bool:
@@ -336,30 +336,30 @@ class Filesystem:
 
     def add_dependency(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> None:
         """Adds a dependency."""
-        self._add_dependency(paths.Filesystem(path), defer_ok=defer_ok)
+        self._add_dependency(_paths.Filesystem(path), defer_ok=defer_ok)
 
     @overload
     def read_text(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         *,
         defer_ok: Literal[False],
     ) -> str: ...
     @overload
     def read_text(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> str | None: ...
     def read_text(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> str | None:
@@ -371,24 +371,24 @@ class Filesystem:
                 dependency to read in another pass: If True, add the dependency
                 and return None; if False, raise an exception.
         """
-        if not self._add_dependency(paths.Filesystem(path), defer_ok=defer_ok):
+        if not self._add_dependency(_paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
             return None
         return (self.root / path).read_text()
 
-    def read_minimal_config(self) -> config.Minimal:
+    def read_minimal_config(self) -> _config.Minimal:
         """Returns a minimal subset of the config."""
         return self._minimal_config
 
-    def read_config(self) -> config.Config:
+    def read_config(self) -> _config.Config:
         """Returns the config."""
-        return config.Config.parse(
-            tomllib.loads(self.read_text(paths.CONFIG, defer_ok=False))
+        return _config.Config.parse(
+            tomllib.loads(self.read_text(_paths.CONFIG, defer_ok=False))
         )
 
     def _add_output(
         self,
-        path: paths.Filesystem,
+        path: _paths.Filesystem,
         *,
         defer_ok: bool,
     ) -> bool:
@@ -401,16 +401,16 @@ class Filesystem:
 
     def add_output(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         *,
         defer_ok: bool = True,
     ) -> None:
         """Adds an output."""
-        self._add_output(paths.Filesystem(path), defer_ok=defer_ok)
+        self._add_output(_paths.Filesystem(path), defer_ok=defer_ok)
 
     def write_text(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         contents: str,
         *,
         defer_ok: bool = True,
@@ -424,7 +424,7 @@ class Filesystem:
                 output to write in another pass: If True, add the output and
                 succeed silently; if False, raise an exception.
         """
-        if not self._add_output(paths.Filesystem(path), defer_ok=defer_ok):
+        if not self._add_output(_paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
             return
         full_path = self.root / path
@@ -433,7 +433,7 @@ class Filesystem:
 
     def write_text_macro(
         self,
-        path: paths.Filesystem | str,
+        path: _paths.Filesystem | str,
         caller: Callable[[], str],
     ) -> str:
         """Calls write_text() with a jinja macro, and returns the text.

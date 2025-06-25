@@ -16,7 +16,7 @@
 import shlex
 from typing import Any, Collection
 
-from ginjarator import paths
+from ginjarator import _paths
 
 
 def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
@@ -37,7 +37,7 @@ def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
                     )
                 )
             )
-        case paths.Filesystem():
+        case _paths.Filesystem():
             return to_ninja(str(value), escape_shell=escape_shell)
         case list() | tuple():
             return " ".join(
@@ -51,7 +51,7 @@ def to_ninja(value: Any, *, escape_shell: bool = False) -> str:
             )
 
 
-def _depfile_escape(path: str | paths.Filesystem) -> str:
+def _depfile_escape(path: str | _paths.Filesystem) -> str:
     # The syntax does not seem to be well documented in any one place. The
     # Target Rules section of
     # https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html
@@ -71,8 +71,8 @@ def _depfile_escape(path: str | paths.Filesystem) -> str:
 
 def to_depfile(
     *,
-    first_output: str | paths.Filesystem,
-    dependencies: Collection[str | paths.Filesystem],
+    first_output: str | _paths.Filesystem,
+    dependencies: Collection[str | _paths.Filesystem],
 ) -> str:
     """Returns depfile contents.
 

@@ -21,8 +21,8 @@ import sys
 import types
 from typing import Never
 
-from ginjarator import filesystem
-from ginjarator import paths
+from ginjarator import _filesystem
+from ginjarator import _paths
 
 _MISSING = object()
 
@@ -82,7 +82,7 @@ class TemplateError(Exception):
 class Api:
     """API for using python code from templates."""
 
-    def __init__(self, *, fs: filesystem.Filesystem) -> None:
+    def __init__(self, *, fs: _filesystem.Filesystem) -> None:
         self._fs = fs
         self._python_fs_by_resolved_path = {}
 
@@ -142,7 +142,7 @@ class Api:
             ) in self._python_fs_by_resolved_path.items():
                 if origin_resolved.is_relative_to(python_resolved):
                     self._fs.add_dependency(
-                        paths.Filesystem(
+                        _paths.Filesystem(
                             python_fs
                             / origin_resolved.relative_to(python_resolved)
                         ),

@@ -18,8 +18,8 @@ from typing import Any
 
 import pytest
 
-from ginjarator import config
-from ginjarator import paths
+from ginjarator import _config
+from ginjarator import _paths
 
 
 @pytest.mark.parametrize(
@@ -27,33 +27,33 @@ from ginjarator import paths
     (
         (
             dict(
-                source_paths=(paths.Filesystem("foo"),),
-                build_paths=(paths.Filesystem("foo"),),
+                source_paths=(_paths.Filesystem("foo"),),
+                build_paths=(_paths.Filesystem("foo"),),
                 python_paths=(),
             ),
             r"must not overlap",
         ),
         (
             dict(
-                source_paths=(paths.Filesystem("foo/bar"),),
-                build_paths=(paths.Filesystem("foo"),),
+                source_paths=(_paths.Filesystem("foo/bar"),),
+                build_paths=(_paths.Filesystem("foo"),),
                 python_paths=(),
             ),
             r"must not overlap",
         ),
         (
             dict(
-                source_paths=(paths.Filesystem("foo"),),
-                build_paths=(paths.Filesystem("foo/bar"),),
+                source_paths=(_paths.Filesystem("foo"),),
+                build_paths=(_paths.Filesystem("foo/bar"),),
                 python_paths=(),
             ),
             r"must not overlap",
         ),
         (
             dict(
-                source_paths=(paths.Filesystem("foo/bar"),),
+                source_paths=(_paths.Filesystem("foo/bar"),),
                 build_paths=(),
-                python_paths=(paths.Filesystem("foo"),),
+                python_paths=(_paths.Filesystem("foo"),),
             ),
             r"python_paths must all be within source_paths",
         ),
@@ -61,17 +61,17 @@ from ginjarator import paths
 )
 def test_minimal_error(kwargs: dict[str, Any], error_regex: str) -> None:
     with pytest.raises(ValueError, match=error_regex):
-        config.Minimal(**kwargs)
+        _config.Minimal(**kwargs)
 
 
 def test_minimal_parse_error() -> None:
     with pytest.raises(ValueError, match="templates"):
-        config.Minimal.parse(dict(templates=[]))
+        _config.Minimal.parse(dict(templates=[]))
 
 
 def test_config_parse_error() -> None:
     with pytest.raises(ValueError, match="kumquat"):
-        config.Config.parse(dict(kumquat="foo"))
+        _config.Config.parse(dict(kumquat="foo"))
 
 
 @pytest.mark.parametrize(
@@ -79,9 +79,9 @@ def test_config_parse_error() -> None:
     (
         (
             {},
-            config.Config(
-                source_paths=(paths.Filesystem("src"),),
-                build_paths=(paths.Filesystem("build"),),
+            _config.Config(
+                source_paths=(_paths.Filesystem("src"),),
+                build_paths=(_paths.Filesystem("build"),),
                 python_paths=(),
                 ninja_templates=(),
                 templates=(),
@@ -91,9 +91,9 @@ def test_config_parse_error() -> None:
                 build_paths=["build"],
                 python_paths=[],
             ),
-            config.Minimal(
-                source_paths=(paths.Filesystem("src"),),
-                build_paths=(paths.Filesystem("build"),),
+            _config.Minimal(
+                source_paths=(_paths.Filesystem("src"),),
+                build_paths=(_paths.Filesystem("build"),),
                 python_paths=(),
             ),
         ),
@@ -105,26 +105,26 @@ def test_config_parse_error() -> None:
                 ninja_templates=["n1.jinja", "n2.jinja"],
                 templates=["t1.jinja", "t2.jinja"],
             ),
-            config.Config(
+            _config.Config(
                 source_paths=(
-                    paths.Filesystem("src1"),
-                    paths.Filesystem("src2"),
+                    _paths.Filesystem("src1"),
+                    _paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem("build1"),
-                    paths.Filesystem("build2"),
+                    _paths.Filesystem("build1"),
+                    _paths.Filesystem("build2"),
                 ),
                 python_paths=(
-                    paths.Filesystem("src1/py"),
-                    paths.Filesystem("src2/py"),
+                    _paths.Filesystem("src1/py"),
+                    _paths.Filesystem("src2/py"),
                 ),
                 ninja_templates=(
-                    paths.Filesystem("n1.jinja"),
-                    paths.Filesystem("n2.jinja"),
+                    _paths.Filesystem("n1.jinja"),
+                    _paths.Filesystem("n2.jinja"),
                 ),
                 templates=(
-                    paths.Filesystem("t1.jinja"),
-                    paths.Filesystem("t2.jinja"),
+                    _paths.Filesystem("t1.jinja"),
+                    _paths.Filesystem("t2.jinja"),
                 ),
             ),
             dict(
@@ -132,18 +132,18 @@ def test_config_parse_error() -> None:
                 build_paths=["build1", "build2"],
                 python_paths=["src1/py", "src2/py"],
             ),
-            config.Minimal(
+            _config.Minimal(
                 source_paths=(
-                    paths.Filesystem("src1"),
-                    paths.Filesystem("src2"),
+                    _paths.Filesystem("src1"),
+                    _paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem("build1"),
-                    paths.Filesystem("build2"),
+                    _paths.Filesystem("build1"),
+                    _paths.Filesystem("build2"),
                 ),
                 python_paths=(
-                    paths.Filesystem("src1/py"),
-                    paths.Filesystem("src2/py"),
+                    _paths.Filesystem("src1/py"),
+                    _paths.Filesystem("src2/py"),
                 ),
             ),
         ),
@@ -154,14 +154,14 @@ def test_config_parse_error() -> None:
                 build_paths=["build2", "build2", "build1"],
                 python_paths=[],
             ),
-            config.Config(
+            _config.Config(
                 source_paths=(
-                    paths.Filesystem("src1"),
-                    paths.Filesystem("src2"),
+                    _paths.Filesystem("src1"),
+                    _paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem("build1"),
-                    paths.Filesystem("build2"),
+                    _paths.Filesystem("build1"),
+                    _paths.Filesystem("build2"),
                 ),
                 python_paths=(),
                 ninja_templates=(),
@@ -172,14 +172,14 @@ def test_config_parse_error() -> None:
                 build_paths=["build1", "build2"],
                 python_paths=[],
             ),
-            config.Minimal(
+            _config.Minimal(
                 source_paths=(
-                    paths.Filesystem("src1"),
-                    paths.Filesystem("src2"),
+                    _paths.Filesystem("src1"),
+                    _paths.Filesystem("src2"),
                 ),
                 build_paths=(
-                    paths.Filesystem("build1"),
-                    paths.Filesystem("build2"),
+                    _paths.Filesystem("build1"),
+                    _paths.Filesystem("build2"),
                 ),
                 python_paths=(),
             ),
@@ -188,13 +188,13 @@ def test_config_parse_error() -> None:
 )
 def test_config(
     config_raw: Any,
-    expected_config: config.Config,
+    expected_config: _config.Config,
     expected_minimal_raw: Any,
-    expected_minimal: config.Minimal,
+    expected_minimal: _config.Minimal,
 ) -> None:
-    actual_config = config.Config.parse(config_raw)
+    actual_config = _config.Config.parse(config_raw)
     actual_minimal_raw = actual_config.serialize_minimal()
-    actual_minimal = config.Minimal.parse(actual_minimal_raw)
+    actual_minimal = _config.Minimal.parse(actual_minimal_raw)
 
     assert actual_config == expected_config
     assert actual_minimal_raw == expected_minimal_raw

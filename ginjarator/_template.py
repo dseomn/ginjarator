@@ -21,10 +21,10 @@ from typing import override
 
 import jinja2
 
-from ginjarator import build
-from ginjarator import filesystem
-from ginjarator import paths
-from ginjarator import python
+from ginjarator import _build
+from ginjarator import _filesystem
+from ginjarator import _paths
+from ginjarator import _python
 
 
 class Api:
@@ -40,20 +40,20 @@ class Api:
     def __init__(
         self,
         *,
-        current_template: paths.Filesystem,
-        fs: filesystem.Filesystem,
+        current_template: _paths.Filesystem,
+        fs: _filesystem.Filesystem,
     ) -> None:
         """Initializer."""
         self.current_template = current_template
         self.fs = fs
-        self.py = python.Api(fs=fs)
-        self.to_ninja = build.to_ninja
+        self.py = _python.Api(fs=fs)
+        self.to_ninja = _build.to_ninja
 
 
 class _Loader(jinja2.BaseLoader):
     """Jinja template loader."""
 
-    def __init__(self, fs: filesystem.Filesystem) -> None:
+    def __init__(self, fs: _filesystem.Filesystem) -> None:
         self._fs = fs
 
     @override
@@ -72,7 +72,7 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.root / template), lambda: False)
 
 
-def _render(api: Api, template_path: paths.Filesystem) -> str:
+def _render(api: Api, template_path: _paths.Filesystem) -> str:
     environment = jinja2.Environment(
         keep_trailing_newline=True,
         extensions=("jinja2.ext.do",),
@@ -85,14 +85,16 @@ def _render(api: Api, template_path: paths.Filesystem) -> str:
 
 
 def ninja(
-    template_path: paths.Filesystem,
+    template_path: _paths.Filesystem,
     *,
-    internal_fs: filesystem.Filesystem,
+    internal_fs: _filesystem.Filesystem,
 ) -> str:
     """Returns custom ninja from the given template."""
     api = Api(
         current_template=template_path,
-        fs=filesystem.Filesystem(internal_fs.root, mode=filesystem.NinjaMode()),
+        fs=_filesystem.Filesystem(
+            internal_fs.root, mode=_filesystem.NinjaMode()
+        ),
     )
     contents = _render(api, template_path)
     for dependency in api.fs.dependencies:
@@ -102,21 +104,21 @@ def ninja(
 
 
 def scan(
-    template_path: paths.Filesystem,
+    template_path: _paths.Filesystem,
     *,
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
     """Scans a template for dependencies and outputs."""
-    internal_fs = filesystem.Filesystem(root_path)
+    internal_fs = _filesystem.Filesystem(root_path)
     api = Api(
         current_template=template_path,
-        fs=filesystem.Filesystem(root_path, mode=filesystem.ScanMode()),
+        fs=_filesystem.Filesystem(root_path, mode=_filesystem.ScanMode()),
     )
     _render(api, template_path)
     scan_dependencies = api.fs.dependencies
     render_dependencies = api.fs.dependencies | api.fs.deferred_dependencies
     render_outputs = api.fs.outputs | api.fs.deferred_outputs
-    state_path = paths.template_state(template_path)
+    state_path = _paths.template_state(template_path)
     internal_fs.write_text(
         state_path,
         json.dumps(
@@ -130,55 +132,55 @@ def scan(
         ),
     )
     internal_fs.write_text(
-        paths.template_depfile(template_path),
-        build.to_depfile(
+        _paths.template_depfile(template_path),
+        _build.to_depfile(
             first_output=state_path,
             dependencies=scan_dependencies,
         ),
     )
-    render_stamp_path = paths.template_render_stamp(template_path)
+    render_stamp_path = _paths.template_render_stamp(template_path)
     internal_fs.write_text(
-        paths.template_dyndep(template_path),
+        _paths.template_dyndep(template_path),
         textwrap.dedent(
             f"""\
             ninja_dyndep_version = 1
             build $
-                    {build.to_ninja(render_stamp_path)} $
+                    {_build.to_ninja(render_stamp_path)} $
                     | $
-                    {build.to_ninja(render_outputs)} $
+                    {_build.to_ninja(render_outputs)} $
                     : $
                     dyndep $
                     | $
-                    {build.to_ninja(render_dependencies)}
+                    {_build.to_ninja(render_dependencies)}
             """
         ),
     )
 
 
 def render(
-    template_path: paths.Filesystem,
+    template_path: _paths.Filesystem,
     *,
     root_path: pathlib.Path = pathlib.Path("."),
 ) -> None:
     """Renders a template."""
-    internal_fs = filesystem.Filesystem(root_path)
+    internal_fs = _filesystem.Filesystem(root_path)
     state = json.loads(
         internal_fs.read_text(
-            paths.template_state(template_path),
+            _paths.template_state(template_path),
             defer_ok=False,
         )
     )
     api = Api(
         current_template=template_path,
-        fs=filesystem.Filesystem(
+        fs=_filesystem.Filesystem(
             root_path,
-            mode=filesystem.RenderMode(
+            mode=_filesystem.RenderMode(
                 dependencies=tuple(
-                    map(paths.Filesystem, state["dependencies"])
+                    map(_paths.Filesystem, state["dependencies"])
                 ),
-                outputs=tuple(map(paths.Filesystem, state["outputs"])),
+                outputs=tuple(map(_paths.Filesystem, state["outputs"])),
             ),
         ),
     )
     _render(api, template_path)
-    internal_fs.write_text(paths.template_render_stamp(template_path), "")
+    internal_fs.write_text(_paths.template_render_stamp(template_path), "")

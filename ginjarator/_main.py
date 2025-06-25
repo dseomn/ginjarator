@@ -15,22 +15,22 @@
 
 import argparse
 
-from ginjarator import init
-from ginjarator import paths
-from ginjarator import template
+from ginjarator import _init
+from ginjarator import _paths
+from ginjarator import _template
 
 
-def _init(args: argparse.Namespace) -> None:
+def _init_command(args: argparse.Namespace) -> None:
     del args  # Unused.
-    init.init()
+    _init.init()
 
 
 def _scan(args: argparse.Namespace) -> None:
-    template.scan(args.template)
+    _template.scan(args.template)
 
 
 def _render(args: argparse.Namespace) -> None:
-    template.render(args.template)
+    _template.render(args.template)
 
 
 def main() -> None:
@@ -42,21 +42,21 @@ def main() -> None:
         "init",
         help="Initialize ginjarator.",
     )
-    init_parser.set_defaults(subcommand=_init)
+    init_parser.set_defaults(subcommand=_init_command)
 
     scan_parser = subparsers.add_parser(
         "scan",
         help="Scan a template. This generally shouldn't be called manually.",
     )
     scan_parser.set_defaults(subcommand=_scan)
-    scan_parser.add_argument("template", type=paths.Filesystem)
+    scan_parser.add_argument("template", type=_paths.Filesystem)
 
     render_parser = subparsers.add_parser(
         "render",
         help="Render a template. This generally shouldn't be called manually.",
     )
     render_parser.set_defaults(subcommand=_render)
-    render_parser.add_argument("template", type=paths.Filesystem)
+    render_parser.add_argument("template", type=_paths.Filesystem)
 
     parsed_args = parser.parse_args()
     parsed_args.subcommand(parsed_args)

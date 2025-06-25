@@ -22,26 +22,26 @@ import xml.parsers.expat.model
 
 import pytest
 
-from ginjarator import filesystem
-from ginjarator import paths
-from ginjarator import python
+from ginjarator import _filesystem
+from ginjarator import _paths
+from ginjarator import _python
 
 # NOTE: Since sys.path and sys.modules are global state, these tests must use
 # unique module paths and names.
 
 
 @pytest.fixture(name="api")
-def _api(tmp_path: pathlib.Path) -> python.Api:
+def _api(tmp_path: pathlib.Path) -> _python.Api:
     (tmp_path / "ginjarator.toml").write_text("")
-    return python.Api(fs=filesystem.Filesystem(tmp_path))
+    return _python.Api(fs=_filesystem.Filesystem(tmp_path))
 
 
-def test_api_assert_no_message(api: python.Api) -> None:
+def test_api_assert_no_message(api: _python.Api) -> None:
     with pytest.raises(AssertionError):
         api.assert_(False)
 
 
-def test_api_assert_with_message(api: python.Api) -> None:
+def test_api_assert_with_message(api: _python.Api) -> None:
     with pytest.raises(AssertionError, match="kumquat"):
         api.assert_(False, "kumquat")
 
@@ -53,7 +53,7 @@ def test_api_assert_with_message(api: python.Api) -> None:
         ("kumquat",),
     ),
 )
-def test_api_assert_noop(args: Any, api: python.Api) -> None:
+def test_api_assert_noop(args: Any, api: _python.Api) -> None:
     api.assert_(True, *args)
 
 
@@ -88,8 +88,8 @@ def test_api_import(tmp_path: pathlib.Path) -> None:
             """
         )
     )
-    fs = filesystem.Filesystem(tmp_path)
-    api = python.Api(fs=fs)
+    fs = _filesystem.Filesystem(tmp_path)
+    api = _python.Api(fs=fs)
 
     mod1 = api.import_(f"{package}.mod1")
 
@@ -98,17 +98,17 @@ def test_api_import(tmp_path: pathlib.Path) -> None:
     assert mod8.urllib.parse is urllib.parse
     assert mod8.xml.parsers.expat.model is xml.parsers.expat.model
     assert fs.dependencies >= {
-        paths.Filesystem(f"src/{package}/__init__.py"),
-        paths.Filesystem(f"src/{package}/mod1.py"),
-        paths.Filesystem(f"src/{package}/mod2.py"),
-        paths.Filesystem(f"src/{package}/mod3.py"),
-        paths.Filesystem(f"src/{package}/mod4.py"),
-        paths.Filesystem(f"src/{package}/mod5.py"),
-        paths.Filesystem(f"src/{package}/sub/__init__.py"),
-        paths.Filesystem(f"src/{package}/sub/mod6.py"),
-        paths.Filesystem(f"src/{package}/mod7.py"),
-        paths.Filesystem(f"src/{package}/mod8.py"),
-        paths.Filesystem(f"src/{package}/mod9.py"),
+        _paths.Filesystem(f"src/{package}/__init__.py"),
+        _paths.Filesystem(f"src/{package}/mod1.py"),
+        _paths.Filesystem(f"src/{package}/mod2.py"),
+        _paths.Filesystem(f"src/{package}/mod3.py"),
+        _paths.Filesystem(f"src/{package}/mod4.py"),
+        _paths.Filesystem(f"src/{package}/mod5.py"),
+        _paths.Filesystem(f"src/{package}/sub/__init__.py"),
+        _paths.Filesystem(f"src/{package}/sub/mod6.py"),
+        _paths.Filesystem(f"src/{package}/mod7.py"),
+        _paths.Filesystem(f"src/{package}/mod8.py"),
+        _paths.Filesystem(f"src/{package}/mod9.py"),
     }
 
 
@@ -117,13 +117,13 @@ def test_api_import_import_top_level(tmp_path: pathlib.Path) -> None:
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / f"{name}.py").write_text("foo = 'kumquat'")
-    fs = filesystem.Filesystem(tmp_path)
-    api = python.Api(fs=fs)
+    fs = _filesystem.Filesystem(tmp_path)
+    api = _python.Api(fs=fs)
 
     module = api.import_(name)
 
     assert module.foo == "kumquat"
-    assert fs.dependencies >= {paths.Filesystem(f"src/{name}.py")}
+    assert fs.dependencies >= {_paths.Filesystem(f"src/{name}.py")}
 
 
 def test_api_import_subsequent_import(tmp_path: pathlib.Path) -> None:
@@ -134,25 +134,25 @@ def test_api_import_subsequent_import(tmp_path: pathlib.Path) -> None:
     package_path = tmp_path / "src" / package
     package_path.mkdir()
     (package_path / "__init__.py").write_text("")
-    python.Api(fs=filesystem.Filesystem(tmp_path)).import_(package)
-    fs = filesystem.Filesystem(tmp_path)
-    api = python.Api(fs=fs)
+    _python.Api(fs=_filesystem.Filesystem(tmp_path)).import_(package)
+    fs = _filesystem.Filesystem(tmp_path)
+    api = _python.Api(fs=fs)
 
     api.import_(package)
 
-    assert fs.dependencies >= {paths.Filesystem(f"src/{package}/__init__.py")}
+    assert fs.dependencies >= {_paths.Filesystem(f"src/{package}/__init__.py")}
 
 
 def test_api_import_import_error(tmp_path: pathlib.Path) -> None:
     package = "ginjarator__python_test__test_api_import_import_error"
     (tmp_path / "ginjarator.toml").write_text("python_paths = ['src']")
-    fs = filesystem.Filesystem(tmp_path)
-    api = python.Api(fs=fs)
+    fs = _filesystem.Filesystem(tmp_path)
+    api = _python.Api(fs=fs)
 
     with pytest.raises(ImportError):
         api.import_(package)
 
 
-def test_api_raise_(api: python.Api) -> None:
-    with pytest.raises(python.TemplateError, match="kumquat"):
+def test_api_raise_(api: _python.Api) -> None:
+    with pytest.raises(_python.TemplateError, match="kumquat"):
         api.raise_("kumquat")

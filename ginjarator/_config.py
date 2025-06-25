@@ -18,7 +18,7 @@ import dataclasses
 import itertools
 from typing import Any, override, Self
 
-from ginjarator import paths
+from ginjarator import _paths
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -35,9 +35,9 @@ class Minimal:
         python_paths: Directories to add to sys.path for finding python modules.
     """
 
-    source_paths: Collection[paths.Filesystem]
-    build_paths: Collection[paths.Filesystem]
-    python_paths: Sequence[paths.Filesystem]
+    source_paths: Collection[_paths.Filesystem]
+    build_paths: Collection[_paths.Filesystem]
+    python_paths: Sequence[_paths.Filesystem]
 
     def __post_init__(self) -> None:
         for source_path, build_path in itertools.product(
@@ -75,18 +75,18 @@ class Minimal:
         return cls(
             source_paths=tuple(
                 map(
-                    paths.Filesystem,
+                    _paths.Filesystem,
                     sorted(set(raw.get("source_paths", ["src"]))),
                 )
             ),
             build_paths=tuple(
                 map(
-                    paths.Filesystem,
+                    _paths.Filesystem,
                     sorted(set(raw.get("build_paths", ["build"]))),
                 )
             ),
             python_paths=tuple(
-                map(paths.Filesystem, raw.get("python_paths", []))
+                map(_paths.Filesystem, raw.get("python_paths", []))
             ),
             **kwargs,
         )
@@ -109,8 +109,8 @@ class Config(Minimal):
         templates: Normal templates to render.
     """
 
-    ninja_templates: Sequence[paths.Filesystem]
-    templates: Sequence[paths.Filesystem]
+    ninja_templates: Sequence[_paths.Filesystem]
+    templates: Sequence[_paths.Filesystem]
 
     @classmethod
     @override
@@ -120,10 +120,10 @@ class Config(Minimal):
         return super().parse(
             raw_copy,
             ninja_templates=tuple(
-                map(paths.Filesystem, raw_copy.pop("ninja_templates", []))
+                map(_paths.Filesystem, raw_copy.pop("ninja_templates", []))
             ),
             templates=tuple(
-                map(paths.Filesystem, raw_copy.pop("templates", []))
+                map(_paths.Filesystem, raw_copy.pop("templates", []))
             ),
             **kwargs,
         )

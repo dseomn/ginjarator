@@ -21,8 +21,8 @@ from typing import Any
 
 import pytest
 
-from ginjarator import build
-from ginjarator import paths
+from ginjarator import _build
+from ginjarator import _paths
 
 
 @pytest.mark.parametrize(
@@ -30,7 +30,7 @@ from ginjarator import paths
     (
         ("foo: $bar", True, "'foo$:$ $$bar'"),
         ("foo: $bar", False, "foo$:$ $$bar"),
-        (paths.Filesystem("foo"), False, "foo"),
+        (_paths.Filesystem("foo"), False, "foo"),
         (["foo", "bar"], False, "foo bar"),
         (("foo", "bar"), False, "foo bar"),
         ({"foo", "bar"}, False, "bar foo"),
@@ -38,7 +38,7 @@ from ginjarator import paths
     ),
 )
 def test_to_ninja(value: Any, escape_shell: bool, expected: str) -> None:
-    assert build.to_ninja(value, escape_shell=escape_shell) == expected
+    assert _build.to_ninja(value, escape_shell=escape_shell) == expected
 
 
 @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ def test_to_ninja(value: Any, escape_shell: bool, expected: str) -> None:
 )
 def test_to_ninja_error(value: Any) -> None:
     with pytest.raises(NotImplementedError, match="Can't convert"):
-        build.to_ninja(value, escape_shell=False)
+        _build.to_ninja(value, escape_shell=False)
 
 
 @pytest.mark.parametrize(
@@ -64,11 +64,11 @@ def test_to_ninja_error(value: Any) -> None:
 )
 def test_to_depfile_error(path: str) -> None:
     with pytest.raises(NotImplementedError, match="Unsupported characters"):
-        build.to_depfile(first_output=path, dependencies=("foo",))
+        _build.to_depfile(first_output=path, dependencies=("foo",))
 
 
 def test_to_depfile() -> None:
-    assert build.to_depfile(
+    assert _build.to_depfile(
         first_output="t1",
         dependencies=("d1", "d2"),
     ) == textwrap.dedent(
@@ -82,18 +82,18 @@ def test_to_depfile() -> None:
 def test_to_depfile_ninja_requires_depfile_outputs_to_be_known(
     tmp_path: pathlib.Path,
 ) -> None:
-    # This test isn't important to build.py, but
+    # This test isn't important to _build.py, but
     # test_to_depfile_escaping_works_with_ninja() below relies on this behavior
     # of ninja to test that the depfile outputs are escaped correctly.
     (tmp_path / "input").write_text("")
     (tmp_path / "depfile").write_text(
         "\n".join(
             (
-                build.to_depfile(
+                _build.to_depfile(
                     first_output="output",
                     dependencies=("input",),
                 ),
-                build.to_depfile(
+                _build.to_depfile(
                     first_output="unknown-kumquat",
                     dependencies=("input",),
                 ),
@@ -129,12 +129,12 @@ def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
     (tmp_path / "depfile").write_text(
         "\n".join(
             (
-                build.to_depfile(
+                _build.to_depfile(
                     first_output="output",
                     dependencies=("input",),
                 ),
                 *(
-                    build.to_depfile(
+                    _build.to_depfile(
                         first_output=filename,
                         dependencies=("input",),
                     )
@@ -149,7 +149,7 @@ def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
             rule copy
                 command = for f in $out; do cp -f $in "$$f" || exit $$?; done
                 depfile = depfile
-            build output {build.to_ninja(filenames_to_test)}: copy input
+            build output {_build.to_ninja(filenames_to_test)}: copy input
             """
         )
     )

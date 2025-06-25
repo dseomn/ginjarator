@@ -17,7 +17,7 @@
 import pathlib
 import textwrap
 
-from ginjarator import init
+from ginjarator import _init
 
 
 def test_init(tmp_path: pathlib.Path) -> None:
@@ -32,7 +32,7 @@ def test_init(tmp_path: pathlib.Path) -> None:
     (tmp_path / "src").mkdir()
     (tmp_path / "src/ninja.jinja").write_text("")
 
-    init.init(root_path=tmp_path)
+    _init.init(root_path=tmp_path)
 
     # This test is very minimal because checking the contents of the ninja files
     # would be pretty complicated, and it would probably just become a change
