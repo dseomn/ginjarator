@@ -73,9 +73,14 @@ def test_mode_no_configure() -> None:
         (_filesystem.InternalMode(), _paths.CONFIG),
         (_filesystem.NinjaMode(), _paths.CONFIG),
         (_filesystem.ScanMode(), _paths.MINIMAL_CONFIG),
+        (_filesystem.TestScanMode(), _paths.CONFIG),
         (
             _filesystem.RenderMode(dependencies=(_paths.MINIMAL_CONFIG,)),
             _paths.MINIMAL_CONFIG,
+        ),
+        (
+            _filesystem.TestRenderMode(dependencies=(_paths.CONFIG,)),
+            _paths.CONFIG,
         ),
     ),
 )

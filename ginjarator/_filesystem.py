@@ -207,6 +207,14 @@ class ScanMode(Mode):
         )
 
 
+class TestScanMode(ScanMode):
+    """ScanMode for use in external project tests."""
+
+    @override
+    def use_cache_to_configure(self) -> bool:
+        return False
+
+
 class RenderMode(Mode):
     """Render templates, using the results from a scan pass.
 
@@ -249,6 +257,14 @@ class RenderMode(Mode):
     def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         self._scan_mode.check_write(path, defer_ok=True)
         return _check_allowed(path, allowed_now=self._outputs, defer_ok=False)
+
+
+class TestRenderMode(RenderMode):
+    """RenderMode for use in external project tests."""
+
+    @override
+    def use_cache_to_configure(self) -> bool:
+        return False
 
 
 class Filesystem:
