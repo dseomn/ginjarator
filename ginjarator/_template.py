@@ -13,7 +13,9 @@
 # limitations under the License.
 """Template scanning and rendering."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+import contextlib
+import contextvars
 import json
 import pathlib
 import textwrap
@@ -50,6 +52,28 @@ class Api:
         self.to_ninja = _build.to_ninja
 
 
+_api: contextvars.ContextVar[Api] = contextvars.ContextVar("_api")
+
+
+def api() -> Api:
+    """Returns the current Api.
+
+    This should only be used by project code called from templates. Ginjarator
+    itself should pass around Api objects as needed.
+    """
+    return _api.get()
+
+
+@contextlib.contextmanager
+def set_api(api_: Api) -> Generator[None, None, None]:
+    """Returns a context manager that sets the current Api."""
+    token = _api.set(api_)
+    try:
+        yield
+    finally:
+        _api.reset(token)
+
+
 class _Loader(jinja2.BaseLoader):
     """Jinja template loader."""
 
@@ -72,16 +96,17 @@ class _Loader(jinja2.BaseLoader):
         return (contents, str(self._fs.root / template), lambda: False)
 
 
-def _render(api: Api, template_path: _paths.Filesystem) -> str:
+def _render(api_: Api, template_path: _paths.Filesystem) -> str:
     environment = jinja2.Environment(
         keep_trailing_newline=True,
         extensions=("jinja2.ext.do",),
         undefined=jinja2.StrictUndefined,
-        loader=_Loader(api.fs),
+        loader=_Loader(api_.fs),
     )
-    environment.globals["ginjarator"] = api
+    environment.globals["ginjarator"] = api_
     template = environment.get_template(str(template_path))
-    return template.render()
+    with set_api(api_):
+        return template.render()
 
 
 def ninja(
@@ -90,14 +115,14 @@ def ninja(
     internal_fs: _filesystem.Filesystem,
 ) -> str:
     """Returns custom ninja from the given template."""
-    api = Api(
+    api_ = Api(
         current_template=template_path,
         fs=_filesystem.Filesystem(
             internal_fs.root, mode=_filesystem.NinjaMode()
         ),
     )
-    contents = _render(api, template_path)
-    for dependency in api.fs.dependencies:
+    contents = _render(api_, template_path)
+    for dependency in api_.fs.dependencies:
         internal_fs.add_dependency(dependency)
     # NinjaMode doesn't allow outputs, so no need to copy them.
     return contents
@@ -110,14 +135,14 @@ def scan(
 ) -> None:
     """Scans a template for dependencies and outputs."""
     internal_fs = _filesystem.Filesystem(root_path)
-    api = Api(
+    api_ = Api(
         current_template=template_path,
         fs=_filesystem.Filesystem(root_path, mode=_filesystem.ScanMode()),
     )
-    _render(api, template_path)
-    scan_dependencies = api.fs.dependencies
-    render_dependencies = api.fs.dependencies | api.fs.deferred_dependencies
-    render_outputs = api.fs.outputs | api.fs.deferred_outputs
+    _render(api_, template_path)
+    scan_dependencies = api_.fs.dependencies
+    render_dependencies = api_.fs.dependencies | api_.fs.deferred_dependencies
+    render_outputs = api_.fs.outputs | api_.fs.deferred_outputs
     state_path = _paths.template_state(template_path)
     internal_fs.write_text(
         state_path,
@@ -170,7 +195,7 @@ def render(
             defer_ok=False,
         )
     )
-    api = Api(
+    api_ = Api(
         current_template=template_path,
         fs=_filesystem.Filesystem(
             root_path,
@@ -182,5 +207,5 @@ def render(
             ),
         ),
     )
-    _render(api, template_path)
+    _render(api_, template_path)
     internal_fs.write_text(_paths.template_render_stamp(template_path), "")

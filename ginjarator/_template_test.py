@@ -33,6 +33,7 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
             """\
             source_paths = ["src"]
             build_paths = ["build"]
+            python_paths = ["src/py"]
             """
         )
     )
@@ -43,11 +44,62 @@ def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
             dict(
                 source_paths=["src"],
                 build_paths=["build"],
+                python_paths=["src/py"],
             )
         )
     )
     (tmp_path / "src").mkdir()
+    (tmp_path / "src/py").mkdir()
     return tmp_path
+
+
+def test_api(root_path: pathlib.Path) -> None:
+    api = _template.Api(
+        current_template=_paths.Filesystem("foo"),
+        fs=_filesystem.Filesystem(root_path),
+    )
+
+    with _template.set_api(api):
+        assert _template.api() is api
+
+
+def test_api_error() -> None:
+    with pytest.raises(LookupError):
+        _template.api()
+
+
+def test_api_available_to_project_python(root_path: pathlib.Path) -> None:
+    template_state_path = root_path / _paths.template_state(
+        "src/template.jinja"
+    )
+    (
+        root_path
+        / "src/py"
+        / "ginjarator__template_test__test_api_available_to_project_python.py"
+    ).write_text(
+        textwrap.dedent(
+            """
+            import ginjarator
+
+            def write():
+                ginjarator.api().fs.write_text("build/output", "kumquat")
+            """
+        )
+    )
+    (root_path / "src/template.jinja").write_text(
+        """
+        {% set module = ginjarator.py.import_(
+            "ginjarator__template_test__test_api_available_to_project_python"
+        ) %}
+        {% do module.write() %}
+        """
+    )
+
+    _template.scan(_paths.Filesystem("src/template.jinja"), root_path=root_path)
+
+    assert json.loads(template_state_path.read_text())["outputs"] == [
+        "build/output"
+    ]
 
 
 @pytest.mark.parametrize(
