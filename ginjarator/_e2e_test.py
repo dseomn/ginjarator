@@ -394,6 +394,18 @@ def test_template_missing_dependency() -> None:
     _run(_NINJA_ARGS, expect_success=False)
 
 
+@pytest.mark.xfail(
+    condition=(
+        subprocess.run(
+            ("ninja", "--version"),
+            stdout=subprocess.PIPE,
+            check=True,
+            text=True,
+        ).stdout.strip()
+        == "1.13.0"
+    ),
+    reason="https://github.com/ninja-build/ninja/issues/2621",
+)
 def test_conflicting_writes() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
