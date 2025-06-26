@@ -30,9 +30,7 @@ _MISSING = object()
 # https://discuss.python.org/t/tracking-and-isolating-imports-without-sys-modules-caching/95418
 # for discussion about the approach this file uses for tracking imports.
 
-_imported_origins: contextvars.ContextVar[set[str]] = contextvars.ContextVar(
-    "_imported_origins"
-)
+_imported_origins = contextvars.ContextVar[set[str]]("_imported_origins")
 
 _original_import = builtins.__import__
 

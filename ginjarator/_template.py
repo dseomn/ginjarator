@@ -52,7 +52,7 @@ class Api:
         self.to_ninja = _build.to_ninja
 
 
-_api: contextvars.ContextVar[Api] = contextvars.ContextVar("_api")
+_api = contextvars.ContextVar[Api]("_api")
 
 
 def api() -> Api:
