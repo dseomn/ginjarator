@@ -670,6 +670,38 @@ def test_remove_template() -> None:
     assert not pathlib.Path("build/out").exists()
 
 
+@pytest.mark.xfail(reason="https://github.com/ninja-build/ninja/issues/2617")
+def test_remove_template_that_created_directory() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/foo.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/foo.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/dir/out", "contents") %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    _sleep_for_mtime()
+    pathlib.Path("ginjarator.toml").write_text("")
+    pathlib.Path("src/foo.jinja").unlink()
+
+    _run_ninja()
+
+    assert not pathlib.Path("build/dir/out").exists()
+    assert not pathlib.Path("build/dir").exists()
+
+
 def test_remove_template_dependency() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
