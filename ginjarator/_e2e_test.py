@@ -816,6 +816,59 @@ def test_template_dependency_changes_creator() -> None:
     assert pathlib.Path("build/out-1").read_text() == "contents-3-out"
 
 
+@pytest.mark.xfail(reason="https://github.com/ninja-build/ninja/issues/2610")
+@pytest.mark.parametrize(
+    "change_path,change_contents",
+    (
+        ("src/template-1.jinja", ""),
+        ("ginjarator.toml", "templates = ['src/template-2.jinja']"),
+    ),
+)
+def test_template_depends_on_removed_output(
+    change_path: str,
+    change_contents: str,
+) -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/template-1.jinja",
+                "src/template-2.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/template-1.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+            """
+        )
+    )
+    pathlib.Path("src/template-2.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
+            {% if out_1 is none %}
+                {% do ginjarator.fs.add_output("build/out-2") %}
+            {% else %}
+                {% do ginjarator.fs.write_text(
+                    "build/out-2",
+                    out_1.replace("1", "2"),
+                ) %}
+            {% endif %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path(change_path).write_text(change_contents)
+
+    _run(_NINJA_ARGS, expect_success=False)
+
+
 def test_error_when_path_removed_from_config() -> None:
     pathlib.Path("other_src").mkdir()
     pathlib.Path("ginjarator.toml").write_text(
