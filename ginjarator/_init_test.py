@@ -16,8 +16,14 @@
 
 import pathlib
 import textwrap
+import time
 
 from ginjarator import _init
+
+
+def _sleep_for_mtime() -> None:
+    """Prevents writes before/after calling this from having the same mtime."""
+    time.sleep(0.01)
 
 
 def test_init(tmp_path: pathlib.Path) -> None:
@@ -38,10 +44,45 @@ def test_init(tmp_path: pathlib.Path) -> None:
     # would be pretty complicated, and it would probably just become a change
     # detector. End-to-end tests that actually run ninja are more useful here.
     assert (tmp_path / ".ginjarator/.gitignore").exists()
-    assert (tmp_path / ".ginjarator/config/minimal.json").exists()
     assert (
         tmp_path / ".ginjarator/ninja_templates/src%2Fninja.jinja.ninja"
     ).exists()
     assert (tmp_path / ".ginjarator/build.ninja.d").exists()
     assert (tmp_path / ".ginjarator/main.ninja").exists()
     assert (tmp_path / "build.ninja").exists()
+
+
+def test_minimal_config_initial(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "ginjarator.toml").write_text("")
+
+    _init.minimal_config(root_path=tmp_path)
+
+    assert (tmp_path / ".ginjarator/config/minimal.json").exists()
+
+
+def test_minimal_config_noop(tmp_path: pathlib.Path) -> None:
+    config_path = tmp_path / "ginjarator.toml"
+    minimal_config_path = tmp_path / ".ginjarator/config/minimal.json"
+    config_path.write_text("")
+    _init.minimal_config(root_path=tmp_path)
+    original_mtime = minimal_config_path.stat().st_mtime
+    _sleep_for_mtime()
+    config_path.write_text("")
+
+    _init.minimal_config(root_path=tmp_path)
+
+    assert minimal_config_path.stat().st_mtime == original_mtime
+
+
+def test_minimal_config_updates(tmp_path: pathlib.Path) -> None:
+    config_path = tmp_path / "ginjarator.toml"
+    minimal_config_path = tmp_path / ".ginjarator/config/minimal.json"
+    config_path.write_text("")
+    _init.minimal_config(root_path=tmp_path)
+    original_mtime = minimal_config_path.stat().st_mtime
+    _sleep_for_mtime()
+    config_path.write_text("source_paths = ['custom']")
+
+    _init.minimal_config(root_path=tmp_path)
+
+    assert minimal_config_path.stat().st_mtime > original_mtime

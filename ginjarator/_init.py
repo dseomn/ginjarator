@@ -41,6 +41,8 @@ def _main_ninja_for_template(template_path: _paths.Filesystem) -> str:
                 : $
                 scan $
                 {_build.to_ninja(template_path)} $
+                | $
+                {_build.to_ninja(_paths.MINIMAL_CONFIG)} $
                 || $
                 {_build.to_ninja(_paths.NINJA_ENTRYPOINT)}
             depfile = {_build.to_ninja(depfile_path)}
@@ -52,6 +54,7 @@ def _main_ninja_for_template(template_path: _paths.Filesystem) -> str:
                 {_build.to_ninja(template_path)} $
                 | $
                 {_build.to_ninja(state_path)} $
+                {_build.to_ninja(_paths.MINIMAL_CONFIG)} $
                 || $
                 {_build.to_ninja(dyndep_path)} $
                 {_build.to_ninja(_paths.SCAN_DONE_STAMP)}
@@ -77,6 +80,11 @@ def _main_ninja(
                 command = ginjarator init
                 description = INIT
                 generator = true
+
+            rule minimal_config
+                command = ginjarator minimal-config
+                description = MINIMAL CONIG
+                restat = true
 
             rule scan
                 command = ginjarator scan $in
@@ -115,6 +123,12 @@ def _main_ninja(
                 depfile = {_build.to_ninja(_paths.NINJA_ENTRYPOINT_DEPFILE)}
 
             build $
+                    {_build.to_ninja(_paths.MINIMAL_CONFIG)} $
+                    : $
+                    minimal_config $
+                    {_build.to_ninja(_paths.CONFIG)}
+
+            build $
                     {_build.to_ninja(_paths.SCAN_DONE_STAMP)} $
                     : $
                     touch $
@@ -147,16 +161,6 @@ def init(
         ),
     )
 
-    fs.write_text(
-        _paths.MINIMAL_CONFIG,
-        json.dumps(
-            config_.serialize_minimal(),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        ),
-    )
-
     for template_path in config_.ninja_templates:
         template_ninja_path = _paths.ninja_template_output(template_path)
         subninjas.append(template_ninja_path)
@@ -183,4 +187,25 @@ def init(
                 ),
             )
         ),
+    )
+
+
+def minimal_config(
+    *,
+    root_path: pathlib.Path = pathlib.Path("."),
+) -> None:
+    """Generates the minimal config file."""
+    fs = _filesystem.Filesystem(root_path)
+    try:
+        raw_old = json.loads(
+            fs.read_text(_paths.MINIMAL_CONFIG, defer_ok=False)
+        )
+    except FileNotFoundError:
+        raw_old = None
+    raw_new = fs.read_config().serialize_minimal()
+    if raw_new == raw_old:
+        return
+    fs.write_text(
+        _paths.MINIMAL_CONFIG,
+        json.dumps(raw_new, ensure_ascii=False, indent=2, sort_keys=True),
     )

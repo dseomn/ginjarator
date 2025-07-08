@@ -25,6 +25,11 @@ def _init_command(args: argparse.Namespace) -> None:
     _init.init()
 
 
+def _minimal_config(args: argparse.Namespace) -> None:
+    del args  # Unused.
+    _init.minimal_config()
+
+
 def _scan(args: argparse.Namespace) -> None:
     _template.scan(args.template)
 
@@ -43,6 +48,15 @@ def main() -> None:
         help="Initialize ginjarator.",
     )
     init_parser.set_defaults(subcommand=_init_command)
+
+    minimal_config_parser = subparsers.add_parser(
+        "minimal-config",
+        help=(
+            "Generate minimal config. This generally shouldn't be called "
+            "manually."
+        ),
+    )
+    minimal_config_parser.set_defaults(subcommand=_minimal_config)
 
     scan_parser = subparsers.add_parser(
         "scan",

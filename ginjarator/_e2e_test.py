@@ -901,6 +901,37 @@ def test_template_depends_on_removed_output(
     _run(_NINJA_ARGS, expect_success=False)
 
 
+def test_non_minimal_config_change_does_not_rebuild_all() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            templates = [
+                "src/kumquat.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/kumquat.jinja").write_text("")
+
+    _run_init()
+    _run_ninja()
+
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            # This new comment does not change the minimal config file.
+            templates = [
+                "src/kumquat.jinja",
+            ]
+            """
+        )
+    )
+
+    ninja_result = _run((*_NINJA_ARGS, "--verbose"))
+
+    assert "src/kumquat.jinja" not in ninja_result.stdout
+
+
 def test_error_when_path_removed_from_config() -> None:
     pathlib.Path("other_src").mkdir()
     pathlib.Path("ginjarator.toml").write_text(
