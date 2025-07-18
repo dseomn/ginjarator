@@ -337,27 +337,29 @@ class Filesystem:
         """Files that were deferred to be written in another pass."""
         return frozenset(self._deferred_outputs)
 
-    def _add_dependency(
+    def add_dependency(
         self,
-        path: _paths.Filesystem,
+        path: _paths.Filesystem | str,
         *,
-        defer_ok: bool,
+        defer_ok: bool = True,
     ) -> bool:
+        """Adds a dependency.
+
+        Args:
+            path: Path to add as a dependency.
+            defer_ok: If False and the file can't be read yet, raise an
+                exception.
+
+        Returns:
+            Whether the file can be read yet.
+        """
+        path = _paths.Filesystem(path)
         if self._mode.check_read(path, defer_ok=defer_ok):
             self._dependencies.add(path)
             return True
         else:
             self._deferred_dependencies.add(path)
             return False
-
-    def add_dependency(
-        self,
-        path: _paths.Filesystem | str,
-        *,
-        defer_ok: bool = True,
-    ) -> None:
-        """Adds a dependency."""
-        self._add_dependency(_paths.Filesystem(path), defer_ok=defer_ok)
 
     @overload
     def read_text(
@@ -387,7 +389,7 @@ class Filesystem:
                 dependency to read in another pass: If True, add the dependency
                 and return None; if False, raise an exception.
         """
-        if not self._add_dependency(_paths.Filesystem(path), defer_ok=defer_ok):
+        if not self.add_dependency(_paths.Filesystem(path), defer_ok=defer_ok):
             assert defer_ok
             return None
         return (self.root / path).read_text()

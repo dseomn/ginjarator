@@ -177,8 +177,9 @@ def test_filesystem_add_dependency_not_deferred(
 ) -> None:
     fs = _filesystem.Filesystem(root_path, mode=copy.deepcopy(mode))
 
-    fs.add_dependency(path, defer_ok=defer_ok)
+    ready = fs.add_dependency(path, defer_ok=defer_ok)
 
+    assert ready
     assert set(fs.dependencies) >= {_paths.Filesystem(path)}
 
 
@@ -186,8 +187,9 @@ def test_filesystem_add_dependency_deferred(root_path: pathlib.Path) -> None:
     fs = _filesystem.Filesystem(root_path, mode=_filesystem.ScanMode())
     path = "build/some-file"
 
-    fs.add_dependency(path, defer_ok=True)
+    ready = fs.add_dependency(path, defer_ok=True)
 
+    assert not ready
     assert set(fs.deferred_dependencies) == {_paths.Filesystem(path)}
 
 
