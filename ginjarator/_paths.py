@@ -81,8 +81,10 @@ class Api:
 
     Attributes:
         current_template: The template currently being rendered.
+        template_render_stamp: See template_render_stamp()
     """
 
     def __init__(self, *, current_template: Filesystem) -> None:
         """Initializer."""
         self.current_template = current_template
+        self.template_render_stamp = template_render_stamp
