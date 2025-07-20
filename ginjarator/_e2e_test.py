@@ -901,6 +901,56 @@ def test_template_depends_on_removed_output(
     _run(_NINJA_ARGS, expect_success=False)
 
 
+def test_template_depends_on_custom_ninja() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/ninja.jinja",
+            ]
+            templates = [
+                "src/template.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/ninja.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf before-normal-template > $out
+            build build/ninja-out: write
+            """
+        )
+    )
+    pathlib.Path("src/template.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% set ninja_out = ginjarator.fs.read_text("build/ninja-out") %}
+            {% if ninja_out is none %}
+                {% do ginjarator.fs.add_output("build/template-out") %}
+            {% else %}
+                {% do ginjarator.fs.write_text(
+                    "build/template-out",
+                    ninja_out.replace("before", "after"),
+                ) %}
+            {% endif %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    assert (
+        pathlib.Path("build/ninja-out").read_text() == "before-normal-template"
+    )
+    assert (
+        pathlib.Path("build/template-out").read_text()
+        == "after-normal-template"
+    )
+
+
 def test_non_minimal_config_change_does_not_rebuild_all() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
