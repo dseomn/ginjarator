@@ -951,6 +951,60 @@ def test_template_depends_on_custom_ninja() -> None:
     )
 
 
+def test_custom_ninja_depends_on_template_implicitly() -> None:
+    pathlib.Path("ginjarator.toml").write_text(
+        textwrap.dedent(
+            """\
+            ninja_templates = [
+                "src/ninja.jinja",
+            ]
+            templates = [
+                "src/template.jinja",
+            ]
+            """
+        )
+    )
+    pathlib.Path("src/ninja.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule dyndep
+                command = printf $
+                    'ninja_dyndep_version = 1\\n%s\\n' $
+                    'build build/ninja-out: dyndep | build/template-out' $
+                    > $out
+            rule transform
+                command = sed 's/before/after/' < $fake_in > $out
+                dyndep = $out.dd
+            build build/ninja-out.dd: dyndep
+            build $
+                    build/ninja-out $
+                    : $
+                    transform $
+                    || $
+                    build/ninja-out.dd $
+                    {{ ginjarator.to_ninja(ginjarator.paths.scan_done_stamp) }}
+                fake_in = build/template-out
+            """
+        )
+    )
+    pathlib.Path("src/template.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text(
+                "build/template-out",
+                "before-ninja",
+            ) %}
+            """
+        )
+    )
+
+    _run_init()
+    _run_ninja()
+
+    assert pathlib.Path("build/template-out").read_text() == "before-ninja"
+    assert pathlib.Path("build/ninja-out").read_text() == "after-ninja"
+
+
 def test_custom_ninja_depends_on_template_explicitly() -> None:
     pathlib.Path("ginjarator.toml").write_text(
         textwrap.dedent(
