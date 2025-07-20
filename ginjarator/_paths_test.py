@@ -54,3 +54,9 @@ def test_template_render_stamp() -> None:
     assert _paths.template_render_stamp("foo") == _paths.Filesystem(
         ".ginjarator/templates/foo.render-stamp"
     )
+
+
+def test_api() -> None:
+    api = _paths.Api(current_template=_paths.Filesystem("foo"))
+
+    assert api.current_template == _paths.Filesystem("foo")

@@ -74,3 +74,15 @@ def template_dyndep(template_path: Filesystem | str) -> Filesystem:
 def template_render_stamp(template_path: Filesystem | str) -> Filesystem:
     """Returns the path for a template's render stamp."""
     return internal("templates", f"{template_path}.render-stamp")
+
+
+class Api:
+    """API for use by templates.
+
+    Attributes:
+        current_template: The template currently being rendered.
+    """
+
+    def __init__(self, *, current_template: Filesystem) -> None:
+        """Initializer."""
+        self.current_template = current_template

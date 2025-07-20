@@ -33,8 +33,8 @@ class Api:
     """API for use by templates.
 
     Attributes:
-        current_template: The template currently being rendered.
         fs: Filesystem access.
+        paths: Path types, constants, and functions.
         py: API to use Python code.
         to_ninja: Converts a value to ninja syntax.
     """
@@ -46,8 +46,8 @@ class Api:
         fs: _filesystem.Filesystem,
     ) -> None:
         """Initializer."""
-        self.current_template = current_template
         self.fs = fs
+        self.paths = _paths.Api(current_template=current_template)
         self.py = _python.Api(fs=fs)
         self.to_ninja = _build.to_ninja
 
