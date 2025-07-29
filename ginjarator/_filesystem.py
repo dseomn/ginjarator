@@ -35,12 +35,13 @@ def _check_allowed(
     path: _paths.Filesystem,
     *,
     allowed_now: Collection[_paths.Filesystem] = (),
+    allowed_now_exact: Collection[_paths.Filesystem] = (),
     allowed_deferred: Collection[_paths.Filesystem] = (),
     defer_ok: bool,
 ) -> bool:
     # NOTE: This is meant to prevent mistakes that could make builds less
     # reliable. It is not meant to be, and isn't, secure.
-    if _is_relative_to_any(path, allowed_now):
+    if path in allowed_now_exact or _is_relative_to_any(path, allowed_now):
         return True
     elif _is_relative_to_any(path, allowed_deferred):
         if defer_ok:
@@ -52,9 +53,11 @@ def _check_allowed(
             )
     else:
         if defer_ok:
-            allowed = sorted(map(str, {*allowed_now, *allowed_deferred}))
+            allowed = sorted(
+                map(str, {*allowed_now, *allowed_now_exact, *allowed_deferred})
+            )
         else:
-            allowed = sorted(map(str, set(allowed_now)))
+            allowed = sorted(map(str, {*allowed_now, *allowed_now_exact}))
         raise ValueError(f"{str(path)!r} is not in allowed paths: {allowed}")
 
 
@@ -130,10 +133,10 @@ class InternalMode(Mode):
         return _check_allowed(
             path,
             allowed_now=(
-                _paths.CONFIG,
                 _paths.INTERNAL,
                 *self.minimal_config.source_paths,
             ),
+            allowed_now_exact=(_paths.CONFIG,),
             defer_ok=False,
         )
 
@@ -141,10 +144,8 @@ class InternalMode(Mode):
     def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
-            allowed_now=(
-                _paths.INTERNAL,
-                _paths.NINJA_ENTRYPOINT,
-            ),
+            allowed_now=(_paths.INTERNAL,),
+            allowed_now_exact=(_paths.NINJA_ENTRYPOINT,),
             defer_ok=False,
         )
 
@@ -166,10 +167,8 @@ class NinjaMode(Mode):
     def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
-            allowed_now=(
-                _paths.CONFIG,
-                *self.minimal_config.source_paths,
-            ),
+            allowed_now=self.minimal_config.source_paths,
+            allowed_now_exact=(_paths.CONFIG,),
             defer_ok=False,
         )
 
@@ -189,10 +188,10 @@ class ScanMode(Mode):
     def check_read(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         return _check_allowed(
             path,
-            allowed_now=(
+            allowed_now=self.minimal_config.source_paths,
+            allowed_now_exact=(
                 _paths.CONFIG,
                 _paths.MINIMAL_CONFIG,
-                *self.minimal_config.source_paths,
             ),
             allowed_deferred=self.minimal_config.build_paths,
             defer_ok=defer_ok,
@@ -235,8 +234,8 @@ class RenderMode(Mode):
             outputs: Deferred writes from the scan pass.
         """
         super().__init__()
-        self._dependencies = dependencies
-        self._outputs = outputs
+        self._dependencies = frozenset(dependencies)
+        self._outputs = frozenset(outputs)
         self._scan_mode = ScanMode()
 
     @override
@@ -249,14 +248,18 @@ class RenderMode(Mode):
         self._scan_mode.check_read(path, defer_ok=True)
         return _check_allowed(
             path,
-            allowed_now=self._dependencies,
+            allowed_now_exact=self._dependencies,
             defer_ok=False,
         )
 
     @override
     def check_write(self, path: _paths.Filesystem, *, defer_ok: bool) -> bool:
         self._scan_mode.check_write(path, defer_ok=True)
-        return _check_allowed(path, allowed_now=self._outputs, defer_ok=False)
+        return _check_allowed(
+            path,
+            allowed_now_exact=self._outputs,
+            defer_ok=False,
+        )
 
 
 class TestRenderMode(RenderMode):
