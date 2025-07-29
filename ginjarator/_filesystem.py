@@ -15,6 +15,7 @@
 
 import abc
 from collections.abc import Callable, Collection, Set
+import functools
 import json
 import pathlib
 import tomllib
@@ -24,11 +25,17 @@ from ginjarator import _config
 from ginjarator import _paths
 
 
+@functools.cache
+def _path_is_relative_to(a: pathlib.PurePath, b: pathlib.PurePath, /) -> bool:
+    # is_relative_to() seems to be pretty slow.
+    return a.is_relative_to(b)
+
+
 def _is_relative_to_any(
     path: pathlib.PurePath,
     others: Collection[pathlib.PurePath],
 ) -> bool:
-    return any(path.is_relative_to(other) for other in others)
+    return any(_path_is_relative_to(path, other) for other in others)
 
 
 def _check_allowed(
