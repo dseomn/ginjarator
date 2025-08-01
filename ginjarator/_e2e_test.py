@@ -950,6 +950,27 @@ def test_template_depends_on_custom_ninja() -> None:
         == "after-normal-template"
     )
 
+    pathlib.Path("src/ninja.jinja").write_text(
+        textwrap.dedent(
+            """\
+            rule write
+                command = printf before-normal-template-2 > $out
+            build build/ninja-out: write
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert (
+        pathlib.Path("build/ninja-out").read_text()
+        == "before-normal-template-2"
+    )
+    assert (
+        pathlib.Path("build/template-out").read_text()
+        == "after-normal-template-2"
+    )
+
 
 def test_custom_ninja_depends_on_template_implicitly() -> None:
     pathlib.Path("ginjarator.toml").write_text(
@@ -1004,6 +1025,22 @@ def test_custom_ninja_depends_on_template_implicitly() -> None:
     assert pathlib.Path("build/template-out").read_text() == "before-ninja"
     assert pathlib.Path("build/ninja-out").read_text() == "after-ninja"
 
+    pathlib.Path("src/template.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text(
+                "build/template-out",
+                "before-ninja-2",
+            ) %}
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/template-out").read_text() == "before-ninja-2"
+    assert pathlib.Path("build/ninja-out").read_text() == "after-ninja-2"
+
 
 def test_custom_ninja_depends_on_template_explicitly() -> None:
     pathlib.Path("ginjarator.toml").write_text(
@@ -1056,6 +1093,22 @@ def test_custom_ninja_depends_on_template_explicitly() -> None:
 
     assert pathlib.Path("build/template-out").read_text() == "before-ninja"
     assert pathlib.Path("build/ninja-out").read_text() == "after-ninja"
+
+    pathlib.Path("src/template.jinja").write_text(
+        textwrap.dedent(
+            """\
+            {% do ginjarator.fs.write_text(
+                "build/template-out",
+                "before-ninja-2",
+            ) %}
+            """
+        )
+    )
+
+    _run_ninja()
+
+    assert pathlib.Path("build/template-out").read_text() == "before-ninja-2"
+    assert pathlib.Path("build/ninja-out").read_text() == "after-ninja-2"
 
 
 def test_non_minimal_config_change_does_not_rebuild_all() -> None:
