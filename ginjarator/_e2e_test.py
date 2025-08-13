@@ -72,6 +72,7 @@ def _run_init() -> None:
 
 def _assert_ninja_noop() -> None:
     """Asserts that another ninja run does nothing."""
+    # TODO: https://github.com/ninja-build/ninja/issues/905 - Remove this hack.
     message_when_building = "no-op expected, but ninja is doing: "
     result = _run(
         (*_NINJA_ARGS, "--verbose"),
