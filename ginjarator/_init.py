@@ -102,7 +102,7 @@ def _main_ninja(
 
     for template_path in config_.templates:
         parts.append(_main_ninja_for_template(template_path))
-        scan_done_dependencies.append(_paths.template_state(template_path))
+        scan_done_dependencies.append(_paths.template_dyndep(template_path))
 
     fs.write_text(
         _paths.NINJA_ENTRYPOINT_DEPFILE,
