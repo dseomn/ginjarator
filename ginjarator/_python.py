@@ -43,7 +43,7 @@ def _import_wrapper(
     locals: (  # pylint: disable=redefined-builtin
         Mapping[str, object] | None
     ) = None,
-    fromlist: Sequence[str] = (),
+    fromlist: Sequence[str] | None = (),
     level: int = 0,
 ) -> types.ModuleType:
     """__import__ wrapper that tracks __spec__.origin of imported modules."""
@@ -56,7 +56,6 @@ def _import_wrapper(
         for attr in name.split(".")[1:]:
             named_module = getattr(named_module, attr)
     modules = [named_module]
-    # The type signature says fromlist can't be None, but sometimes it is.
     if fromlist is not None:
         for attr in fromlist:
             if attr == "*":
