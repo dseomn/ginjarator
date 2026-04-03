@@ -78,16 +78,12 @@ def test_api_import(tmp_path: pathlib.Path) -> None:
         "from . import mod8; from .mod8 import not_a_module"
     )
     (package_path / "mod8.py").write_text("from .mod9 import *")
-    (package_path / "mod9.py").write_text(
-        textwrap.dedent(
-            """
-            import textwrap  # no dot
-            import urllib.parse  # has dot
-            import xml.parsers.expat.model  # __spec__ is None
-            not_a_module = "kumquat"
-            """
-        )
-    )
+    (package_path / "mod9.py").write_text(textwrap.dedent("""
+        import textwrap  # no dot
+        import urllib.parse  # has dot
+        import xml.parsers.expat.model  # __spec__ is None
+        not_a_module = "kumquat"
+    """))
     fs = _filesystem.Filesystem(tmp_path)
     api = _python.Api(fs=fs)
 

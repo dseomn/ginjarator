@@ -27,14 +27,10 @@ def _sleep_for_mtime() -> None:
 
 
 def test_init(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = ["src/ninja.jinja"]
-            templates = ["src/template.jinja"]
-            """
-        )
-    )
+    (tmp_path / "ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = ["src/ninja.jinja"]
+        templates = ["src/template.jinja"]
+    """))
     (tmp_path / "src").mkdir()
     (tmp_path / "src/ninja.jinja").write_text("")
 

@@ -166,8 +166,7 @@ def scan(
     render_stamp_path = _paths.template_render_stamp(template_path)
     internal_fs.write_text(
         _paths.template_dyndep(template_path),
-        textwrap.dedent(
-            f"""\
+        textwrap.dedent(f"""\
             ninja_dyndep_version = 1
             build $
                     {_build.to_ninja(render_stamp_path)} $
@@ -177,8 +176,7 @@ def scan(
                     dyndep $
                     | $
                     {_build.to_ninja(render_dependencies)}
-            """
-        ),
+        """),
     )
 
 

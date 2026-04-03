@@ -82,24 +82,16 @@ def _assert_ninja_noop() -> None:
 
 
 def test_assert_ninja_noop() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf contents > $out
-            build build/out: write
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf contents > $out
+        build build/out: write
+    """))
     _run_init()
 
     with pytest.raises(AssertionError, match=r"no-op expected"):
@@ -128,26 +120,18 @@ def test_empty_project() -> None:
 
 
 def test_ninja_template() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/foo.jinja",
+        ]
+    """))
     # Note that the rule name here is the same as one that ginjarator uses
     # internally, but they're in different scopes.
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule init
-                command = printf contents > $out
-            build build/out: init
-            """
-        )
-    )
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        rule init
+            command = printf contents > $out
+        build build/out: init
+    """))
 
     _run_init()
     _run_ninja()
@@ -168,24 +152,16 @@ def test_add_ninja_template() -> None:
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf contents > $out
-            build build/out: write
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf contents > $out
+        build build/out: write
+    """))
 
     _run_ninja()
 
@@ -193,24 +169,16 @@ def test_add_ninja_template() -> None:
 
 
 def test_remove_ninja_template() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf contents > $out
-            build build/out: write
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf contents > $out
+        build build/out: write
+    """))
 
     _run_init()
     _run_ninja()
@@ -225,37 +193,25 @@ def test_remove_ninja_template() -> None:
 
 
 def test_update_ninja_template_dependency() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/foo.jinja",
+        ]
+    """))
     pathlib.Path("src/included.jinja").write_text("")
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% include "src/included.jinja" %}
-            """
-        )
-    )
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% include "src/included.jinja" %}
+    """))
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("src/included.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf contents > $out
-            build build/out: write
-            """
-        )
-    )
+    pathlib.Path("src/included.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf contents > $out
+        build build/out: write
+    """))
 
     _run_ninja()
 
@@ -263,15 +219,11 @@ def test_update_ninja_template_dependency() -> None:
 
 
 def test_empty_template() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
     pathlib.Path("src/foo.jinja").write_text("")
 
     _run_init()
@@ -279,23 +231,15 @@ def test_empty_template() -> None:
 
 
 def test_simple() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
-            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+        {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -315,38 +259,26 @@ def test_simple() -> None:
 
 
 def test_template_dependencies() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
-            {% if out_1 is none %}
-                {% do ginjarator.fs.add_output("build/out-2") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-2",
-                    out_1.replace("1", "2"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
+        {% if out_1 is none %}
+            {% do ginjarator.fs.add_output("build/out-2") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-2",
+                out_1.replace("1", "2"),
+            ) %}
+        {% endif %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -366,30 +298,22 @@ def test_template_dependencies() -> None:
 
 
 def test_template_missing_dependency() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
-            {% if out_1 is none %}
-                {% do ginjarator.fs.add_output("build/out-2") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-2",
-                    out_1.replace("1", "2"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
+        {% if out_1 is none %}
+            {% do ginjarator.fs.add_output("build/out-2") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-2",
+                out_1.replace("1", "2"),
+            ) %}
+        {% endif %}
+    """))
 
     _run_init()
     _run(_NINJA_ARGS, expect_success=False)
@@ -408,64 +332,40 @@ def test_template_missing_dependency() -> None:
     reason="https://github.com/ninja-build/ninja/issues/2621",
 )
 def test_conflicting_writes() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents-1") %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents-1") %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents-2") %}
+    """))
 
     _run_init()
     _run(_NINJA_ARGS, expect_success=False)
 
 
 def test_update_template() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents") %}
+    """))
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "new-contents") %}
-            """
-        )
-    )
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "new-contents") %}
+    """))
 
     _run_ninja()
 
@@ -474,26 +374,18 @@ def test_update_template() -> None:
 
 def test_update_template_dependency_scan_and_render() -> None:
     """Tests updating a dependency of both the scan and render passes."""
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
     pathlib.Path("src/foo-in").write_text("contents")
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/out",
-                ginjarator.fs.read_text("src/foo-in"),
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/out",
+            ginjarator.fs.read_text("src/foo-in"),
+        ) %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -508,50 +400,34 @@ def test_update_template_dependency_scan_and_render() -> None:
 
 def test_update_template_dependency_render_only() -> None:
     """Tests updating a dependency of only the render pass."""
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
-            {% if out_2 is none %}
-                {% do ginjarator.fs.add_output("build/out-1") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-1",
-                    out_2.replace("2", "1"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
+        {% if out_2 is none %}
+            {% do ginjarator.fs.add_output("build/out-1") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-1",
+                out_2.replace("2", "1"),
+            ) %}
+        {% endif %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+    """))
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-2", "new-contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-2", "new-contents-2") %}
+    """))
 
     _run_ninja()
 
@@ -564,22 +440,14 @@ def test_add_template() -> None:
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents") %}
+    """))
 
     _run_ninja()
 
@@ -587,53 +455,37 @@ def test_add_template() -> None:
 
 
 def test_add_template_dependency() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+        ]
+    """))
     pathlib.Path("src/template-1.jinja").write_text("")
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
-            {% if out_2 is none %}
-                {% do ginjarator.fs.add_output("build/out-1") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-1",
-                    out_2.replace("2", "1"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
+        {% if out_2 is none %}
+            {% do ginjarator.fs.add_output("build/out-1") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-1",
+                out_2.replace("2", "1"),
+            ) %}
+        {% endif %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+    """))
 
     _run_ninja()
 
@@ -642,22 +494,14 @@ def test_add_template_dependency() -> None:
 
 
 def test_remove_template() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents") %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -673,22 +517,14 @@ def test_remove_template() -> None:
 
 @pytest.mark.xfail(reason="https://github.com/ninja-build/ninja/issues/2617")
 def test_remove_template_that_created_directory() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/dir/out", "contents") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/dir/out", "contents") %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -704,59 +540,39 @@ def test_remove_template_that_created_directory() -> None:
 
 
 def test_remove_template_dependency() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
-            {% if out_2 is none %}
-                {% do ginjarator.fs.add_output("build/out-1") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-1",
-                    out_2.replace("2", "1"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% set out_2 = ginjarator.fs.read_text("build/out-2") %}
+        {% if out_2 is none %}
+            {% do ginjarator.fs.add_output("build/out-1") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-1",
+                out_2.replace("2", "1"),
+            ) %}
+        {% endif %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-2", "contents-2") %}
+    """))
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-1", "new-contents-1") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-1", "new-contents-1") %}
+    """))
     pathlib.Path("src/template-2.jinja").unlink()
 
     _run_ninja()
@@ -766,22 +582,14 @@ def test_remove_template_dependency() -> None:
 
 
 def test_remove_template_output() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/foo.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/foo.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out", "contents") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/foo.jinja",
+        ]
+    """))
+    pathlib.Path("src/foo.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out", "contents") %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -795,39 +603,27 @@ def test_remove_template_output() -> None:
 
 
 def test_template_dependency_changes_creator() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-                "src/template-3.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set in_1 = ginjarator.fs.read_text("build/in-1") %}
-            {% if in_1 is none %}
-                {% do ginjarator.fs.add_output("build/out-1") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-1",
-                    in_1.replace("in", "out"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/in-1", "contents-2-in") %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+            "src/template-3.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% set in_1 = ginjarator.fs.read_text("build/in-1") %}
+        {% if in_1 is none %}
+            {% do ginjarator.fs.add_output("build/out-1") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-1",
+                in_1.replace("in", "out"),
+            ) %}
+        {% endif %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/in-1", "contents-2-in") %}
+    """))
     pathlib.Path("src/template-3.jinja").write_text("")
 
     _run_init()
@@ -835,13 +631,9 @@ def test_template_dependency_changes_creator() -> None:
 
     _sleep_for_mtime()
     pathlib.Path("src/template-2.jinja").write_text("")
-    pathlib.Path("src/template-3.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/in-1", "contents-3-in") %}
-            """
-        )
-    )
+    pathlib.Path("src/template-3.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/in-1", "contents-3-in") %}
+    """))
 
     _run_ninja()
 
@@ -861,38 +653,26 @@ def test_template_depends_on_removed_output(
     change_path: str,
     change_contents: str,
 ) -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/template-1.jinja",
-                "src/template-2.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template-1.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
-            """
-        )
-    )
-    pathlib.Path("src/template-2.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
-            {% if out_1 is none %}
-                {% do ginjarator.fs.add_output("build/out-2") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/out-2",
-                    out_1.replace("1", "2"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/template-1.jinja",
+            "src/template-2.jinja",
+        ]
+    """))
+    pathlib.Path("src/template-1.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text("build/out-1", "contents-1") %}
+    """))
+    pathlib.Path("src/template-2.jinja").write_text(textwrap.dedent("""\
+        {% set out_1 = ginjarator.fs.read_text("build/out-1") %}
+        {% if out_1 is none %}
+            {% do ginjarator.fs.add_output("build/out-2") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/out-2",
+                out_1.replace("1", "2"),
+            ) %}
+        {% endif %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -903,42 +683,30 @@ def test_template_depends_on_removed_output(
 
 
 def test_template_depends_on_custom_ninja() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/ninja.jinja",
-            ]
-            templates = [
-                "src/template.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/ninja.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf before-normal-template > $out
-            build build/ninja-out: write
-            """
-        )
-    )
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% set ninja_out = ginjarator.fs.read_text("build/ninja-out") %}
-            {% if ninja_out is none %}
-                {% do ginjarator.fs.add_output("build/template-out") %}
-            {% else %}
-                {% do ginjarator.fs.write_text(
-                    "build/template-out",
-                    ninja_out.replace("before", "after"),
-                ) %}
-            {% endif %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/ninja.jinja",
+        ]
+        templates = [
+            "src/template.jinja",
+        ]
+    """))
+    pathlib.Path("src/ninja.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf before-normal-template > $out
+        build build/ninja-out: write
+    """))
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% set ninja_out = ginjarator.fs.read_text("build/ninja-out") %}
+        {% if ninja_out is none %}
+            {% do ginjarator.fs.add_output("build/template-out") %}
+        {% else %}
+            {% do ginjarator.fs.write_text(
+                "build/template-out",
+                ninja_out.replace("before", "after"),
+            ) %}
+        {% endif %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -951,15 +719,11 @@ def test_template_depends_on_custom_ninja() -> None:
         == "after-normal-template"
     )
 
-    pathlib.Path("src/ninja.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule write
-                command = printf before-normal-template-2 > $out
-            build build/ninja-out: write
-            """
-        )
-    )
+    pathlib.Path("src/ninja.jinja").write_text(textwrap.dedent("""\
+        rule write
+            command = printf before-normal-template-2 > $out
+        build build/ninja-out: write
+    """))
 
     _run_ninja()
 
@@ -974,51 +738,39 @@ def test_template_depends_on_custom_ninja() -> None:
 
 
 def test_custom_ninja_depends_on_template_implicitly() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/ninja.jinja",
-            ]
-            templates = [
-                "src/template.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/ninja.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule dyndep
-                command = printf $
-                    'ninja_dyndep_version = 1\\n%s\\n' $
-                    'build build/ninja-out: dyndep | build/template-out' $
-                    > $out
-            rule transform
-                command = sed 's/before/after/' < $fake_in > $out
-                dyndep = $out.dd
-            build build/ninja-out.dd: dyndep
-            build $
-                    build/ninja-out $
-                    : $
-                    transform $
-                    || $
-                    build/ninja-out.dd $
-                    {{ ginjarator.to_ninja(ginjarator.paths.scan_done_stamp) }}
-                fake_in = build/template-out
-            """
-        )
-    )
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/template-out",
-                "before-ninja",
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/ninja.jinja",
+        ]
+        templates = [
+            "src/template.jinja",
+        ]
+    """))
+    pathlib.Path("src/ninja.jinja").write_text(textwrap.dedent("""\
+        rule dyndep
+            command = printf $
+                'ninja_dyndep_version = 1\\n%s\\n' $
+                'build build/ninja-out: dyndep | build/template-out' $
+                > $out
+        rule transform
+            command = sed 's/before/after/' < $fake_in > $out
+            dyndep = $out.dd
+        build build/ninja-out.dd: dyndep
+        build $
+                build/ninja-out $
+                : $
+                transform $
+                || $
+                build/ninja-out.dd $
+                {{ ginjarator.to_ninja(ginjarator.paths.scan_done_stamp) }}
+            fake_in = build/template-out
+    """))
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/template-out",
+            "before-ninja",
+        ) %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -1026,16 +778,12 @@ def test_custom_ninja_depends_on_template_implicitly() -> None:
     assert pathlib.Path("build/template-out").read_text() == "before-ninja"
     assert pathlib.Path("build/ninja-out").read_text() == "after-ninja"
 
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/template-out",
-                "before-ninja-2",
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/template-out",
+            "before-ninja-2",
+        ) %}
+    """))
 
     _run_ninja()
 
@@ -1044,50 +792,38 @@ def test_custom_ninja_depends_on_template_implicitly() -> None:
 
 
 def test_custom_ninja_depends_on_template_explicitly() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            ninja_templates = [
-                "src/ninja.jinja",
-            ]
-            templates = [
-                "src/template.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/ninja.jinja").write_text(
-        textwrap.dedent(
-            """\
-            rule transform
-                command = $
-                    sed 's/before/after/' < $fake_in > $out && $
-                    printf '%s: %s\\n' $out $fake_in > $out.d
-                depfile = $out.d
-            build $
-                    build/ninja-out $
-                    : $
-                    transform $
-                    || $
-                    {{ ginjarator.to_ninja(
-                        ginjarator.paths.template_render_stamp(
-                            "src/template.jinja"
-                        )
-                    ) }}
-                fake_in = build/template-out
-            """
-        )
-    )
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/template-out",
-                "before-ninja",
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        ninja_templates = [
+            "src/ninja.jinja",
+        ]
+        templates = [
+            "src/template.jinja",
+        ]
+    """))
+    pathlib.Path("src/ninja.jinja").write_text(textwrap.dedent("""\
+        rule transform
+            command = $
+                sed 's/before/after/' < $fake_in > $out && $
+                printf '%s: %s\\n' $out $fake_in > $out.d
+            depfile = $out.d
+        build $
+                build/ninja-out $
+                : $
+                transform $
+                || $
+                {{ ginjarator.to_ninja(
+                    ginjarator.paths.template_render_stamp(
+                        "src/template.jinja"
+                    )
+                ) }}
+            fake_in = build/template-out
+    """))
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/template-out",
+            "before-ninja",
+        ) %}
+    """))
 
     _run_init()
     _run_ninja()
@@ -1095,16 +831,12 @@ def test_custom_ninja_depends_on_template_explicitly() -> None:
     assert pathlib.Path("build/template-out").read_text() == "before-ninja"
     assert pathlib.Path("build/ninja-out").read_text() == "after-ninja"
 
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/template-out",
-                "before-ninja-2",
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/template-out",
+            "before-ninja-2",
+        ) %}
+    """))
 
     _run_ninja()
 
@@ -1113,30 +845,22 @@ def test_custom_ninja_depends_on_template_explicitly() -> None:
 
 
 def test_non_minimal_config_change_does_not_rebuild_all() -> None:
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = [
-                "src/kumquat.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = [
+            "src/kumquat.jinja",
+        ]
+    """))
     pathlib.Path("src/kumquat.jinja").write_text("")
 
     _run_init()
     _run_ninja()
 
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            # This new comment does not change the minimal config file.
-            templates = [
-                "src/kumquat.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        # This new comment does not change the minimal config file.
+        templates = [
+            "src/kumquat.jinja",
+        ]
+    """))
 
     ninja_result = _run((*_NINJA_ARGS, "--verbose"))
 
@@ -1145,46 +869,34 @@ def test_non_minimal_config_change_does_not_rebuild_all() -> None:
 
 def test_error_when_path_removed_from_config() -> None:
     pathlib.Path("other_src").mkdir()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            source_paths = [
-                "src",
-                "other_src",
-            ]
-            templates = [
-                "src/template.jinja",
-            ]
-            """
-        )
-    )
-    pathlib.Path("src/template.jinja").write_text(
-        textwrap.dedent(
-            """\
-            {% do ginjarator.fs.write_text(
-                "build/out",
-                ginjarator.fs.read_text("other_src/in").replace("in", "out"),
-            ) %}
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        source_paths = [
+            "src",
+            "other_src",
+        ]
+        templates = [
+            "src/template.jinja",
+        ]
+    """))
+    pathlib.Path("src/template.jinja").write_text(textwrap.dedent("""\
+        {% do ginjarator.fs.write_text(
+            "build/out",
+            ginjarator.fs.read_text("other_src/in").replace("in", "out"),
+        ) %}
+    """))
     pathlib.Path("other_src/in").write_text("contents-in")
 
     _run_init()
     _run_ninja()
 
     _sleep_for_mtime()
-    pathlib.Path("ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            source_paths = [
-                "src",
-            ]
-            templates = [
-                "src/template.jinja",
-            ]
-            """
-        )
-    )
+    pathlib.Path("ginjarator.toml").write_text(textwrap.dedent("""\
+        source_paths = [
+            "src",
+        ]
+        templates = [
+            "src/template.jinja",
+        ]
+    """))
 
     _run(_NINJA_ARGS, expect_success=False)

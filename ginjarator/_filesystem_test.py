@@ -28,14 +28,10 @@ from ginjarator import _paths
 
 @pytest.fixture(name="root_path")
 def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
-    (tmp_path / "ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            source_paths = ["src"]
-            build_paths = ["build"]
-            """
-        )
-    )
+    (tmp_path / "ginjarator.toml").write_text(textwrap.dedent("""\
+        source_paths = ["src"]
+        build_paths = ["build"]
+    """))
     (tmp_path / ".ginjarator").mkdir()
     (tmp_path / ".ginjarator/config").mkdir()
     (tmp_path / ".ginjarator/config/minimal.json").write_text(

@@ -100,16 +100,12 @@ def test_to_depfile_ninja_requires_depfile_outputs_to_be_known(
             )
         )
     )
-    (tmp_path / "build.ninja").write_text(
-        textwrap.dedent(
-            """\
-            rule copy
-                command = cp -f $in $out
-                depfile = depfile
-            build output: copy input
-            """
-        )
-    )
+    (tmp_path / "build.ninja").write_text(textwrap.dedent("""\
+        rule copy
+            command = cp -f $in $out
+            depfile = depfile
+        build output: copy input
+    """))
 
     result = subprocess.run(
         ("ninja", "-C", str(tmp_path), "-d", "explain"),
@@ -143,16 +139,12 @@ def test_to_depfile_escaping_works_with_ninja(tmp_path: pathlib.Path) -> None:
             )
         )
     )
-    (tmp_path / "build.ninja").write_text(
-        textwrap.dedent(
-            f"""\
-            rule copy
-                command = for f in $out; do cp -f $in "$$f" || exit $$?; done
-                depfile = depfile
-            build output {_build.to_ninja(filenames_to_test)}: copy input
-            """
-        )
-    )
+    (tmp_path / "build.ninja").write_text(textwrap.dedent(f"""\
+        rule copy
+            command = for f in $out; do cp -f $in "$$f" || exit $$?; done
+            depfile = depfile
+        build output {_build.to_ninja(filenames_to_test)}: copy input
+    """))
 
     result = subprocess.run(
         ("ninja", "-C", str(tmp_path), "-d", "explain"),

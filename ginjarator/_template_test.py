@@ -28,15 +28,11 @@ from ginjarator import _template
 
 @pytest.fixture(name="root_path")
 def _root_path(tmp_path: pathlib.Path) -> pathlib.Path:
-    (tmp_path / "ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            source_paths = ["src"]
-            build_paths = ["build"]
-            python_paths = ["src/py"]
-            """
-        )
-    )
+    (tmp_path / "ginjarator.toml").write_text(textwrap.dedent("""\
+        source_paths = ["src"]
+        build_paths = ["build"]
+        python_paths = ["src/py"]
+    """))
     (tmp_path / ".ginjarator").mkdir()
     (tmp_path / ".ginjarator/config").mkdir()
     (tmp_path / ".ginjarator/config/minimal.json").write_text(
@@ -77,23 +73,19 @@ def test_api_available_to_project_python(root_path: pathlib.Path) -> None:
         / "src/py"
         / "ginjarator__template_test__test_api_available_to_project_python.py"
     ).write_text(
-        textwrap.dedent(
-            """
+        textwrap.dedent("""
             import ginjarator
 
             def write():
                 ginjarator.api().fs.write_text("build/output", "kumquat")
-            """
-        )
+        """)
     )
-    (root_path / "src/template.jinja").write_text(
-        """
+    (root_path / "src/template.jinja").write_text("""
         {% set module = ginjarator.py.import_(
             "ginjarator__template_test__test_api_available_to_project_python"
         ) %}
         {% do module.write() %}
-        """
-    )
+    """)
 
     _template.scan(_paths.Filesystem("src/template.jinja"), root_path=root_path)
 
@@ -137,13 +129,11 @@ def test_scan(root_path: pathlib.Path) -> None:
     template_state_path = root_path / _paths.template_state(
         "src/template.jinja"
     )
-    (root_path / "src/template.jinja").write_text(
-        """
+    (root_path / "src/template.jinja").write_text("""
         {% call ginjarator.fs.write_text_macro("build/output") %}
             {{- 1 + 2 -}}
         {% endcall %}
-        """
-    )
+    """)
 
     _template.scan(_paths.Filesystem("src/template.jinja"), root_path=root_path)
 
@@ -175,13 +165,11 @@ def test_render(root_path: pathlib.Path) -> None:
             )
         )
     )
-    (root_path / "src/template.jinja").write_text(
-        """
+    (root_path / "src/template.jinja").write_text("""
         {% call ginjarator.fs.write_text_macro("build/output") %}
             {{- 1 + 2 -}}
         {% endcall %}
-        """
-    )
+    """)
 
     _template.render(
         _paths.Filesystem("src/template.jinja"),

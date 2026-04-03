@@ -24,13 +24,9 @@ import ginjarator.testing
 
 
 def test_api_for_scan(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            templates = ["src/kumquat.jinja"]
-            """
-        )
-    )
+    (tmp_path / "ginjarator.toml").write_text(textwrap.dedent("""\
+        templates = ["src/kumquat.jinja"]
+    """))
 
     with ginjarator.testing.api_for_scan(root_path=tmp_path):
         assert tuple(map(str, ginjarator.api().fs.read_config().templates)) == (
@@ -45,13 +41,9 @@ def test_api_for_render_error() -> None:
 
 
 def test_api_for_render(tmp_path: pathlib.Path) -> None:
-    (tmp_path / "ginjarator.toml").write_text(
-        textwrap.dedent(
-            """\
-            build_paths = ["build"]
-            """
-        )
-    )
+    (tmp_path / "ginjarator.toml").write_text(textwrap.dedent("""\
+        build_paths = ["build"]
+    """))
 
     with ginjarator.testing.api_for_render(
         root_path=tmp_path,
